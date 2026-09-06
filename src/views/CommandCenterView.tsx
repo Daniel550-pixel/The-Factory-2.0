@@ -1,32 +1,26 @@
 import React from 'react';
 import {
   Activity,
-  Shield,
-  ShieldCheck,
-  ShieldAlert,
-  Database,
-  Cpu,
-  Brain,
-  Layers,
-  ArrowRight,
-  Play,
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
-  Clock,
+  ArrowRight,
+  Brain,
+  CheckCircle2,
+  ChevronRight,
+  CircleDot,
+  Clock3,
+  Cpu,
+  Database,
+  FileCheck2,
+  GitBranch,
+  LockKeyhole,
+  Play,
+  Radio,
+  ShieldCheck,
   Sparkles,
-  Lock,
-  Boxes,
-  FileCheck,
+  Workflow,
+  XCircle,
 } from 'lucide-react';
-import type {
-  SystemStatus,
-  ExecutionContext,
-  CanonicalEvent,
-  Agent,
-  ApprovalRequest,
-  RuntimeMode,
-} from '../types';
+import type { SystemStatus, ExecutionContext, CanonicalEvent, Agent, ApprovalRequest, RuntimeMode } from '../types';
 
 interface CommandCenterViewProps {
   status: SystemStatus | null;
@@ -41,6 +35,21 @@ interface CommandCenterViewProps {
   onOpenQuickLaunch: () => void;
 }
 
+const toneForStatus = (status: ExecutionContext['status']) => {
+  if (status === 'COMPLETED') return 'text-emerald-300';
+  if (status === 'FAILED' || status === 'DENIED') return 'text-rose-300';
+  if (status === 'ESCALATED') return 'text-amber-300';
+  return 'text-cyan-300';
+};
+
+const formatTime = (value: string) => {
+  try {
+    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  } catch {
+    return '—';
+  }
+};
+
 export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
   status,
   executions,
@@ -53,444 +62,225 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
   onSelectEvent,
   onOpenQuickLaunch,
 }) => {
-  const pendingApprovals = approvals.filter((a) => a.status === 'PENDING');
+  const pendingApprovals = approvals.filter((item) => item.status === 'PENDING');
+  const recentExecutions = executions.slice(0, 5);
+  const recentEvents = events.slice(0, 8);
+  const activeAgents = agents.filter((agent) => agent.status === 'ACTIVE' || agent.status === 'BUSY');
+  const runtimeState = status?.runtimeStatus ?? 'OPERATIONAL';
+
+  const pipeline = [
+    ['01', 'REQUEST', 'Observation'],
+    ['02', 'CONTEXT', 'Assembly'],
+    ['03', 'REASONING', 'Specialist'],
+    ['04', 'PROPOSAL', 'Action plan'],
+    ['05', 'EVIDENCE', 'Provenance'],
+    ['06', 'VERIFY', 'Integrity'],
+    ['07', 'POLICY', 'Authorization'],
+    ['08', 'EXECUTE', 'Authorized'],
+    ['09', 'LEDGER', 'Canonical'],
+  ];
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* 1. Invariant & System Status Hero Banner */}
-      <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 backdrop-blur shadow-sm relative overflow-hidden">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                <Lock className="h-3 w-3" />
-                FUNDAMENTAL SECURITY INVARIANT
-              </span>
-              <span className="text-xs font-mono text-neutral-400">
-                MODE: <strong className="text-neutral-100">{activeMode}</strong>
-              </span>
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-neutral-100 font-mono">
-              AI DECIDES ≠ AI EXECUTES
-            </h1>
-            <p className="text-xs text-neutral-400 max-w-3xl leading-relaxed">
-              The Factory separates observation, specialist agent reasoning, proposal generation, evidentiary verification, risk scoring, deterministic policy authorization, and cryptographically verified execution on the immutable Event Ledger.
-            </p>
+    <div className="min-h-full pb-10 text-neutral-200">
+      <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 font-mono text-[9px] tracking-[0.24em] text-neutral-600">
+            <span className="text-cyan-400">FACTORY://</span>
+            <span>COMMAND_CENTER</span>
+            <span>/</span>
+            <span className="text-neutral-500">{activeMode}</span>
           </div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight text-white">Command Center</h1>
+            <span className="flex items-center gap-1.5 rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] px-2.5 py-1 font-mono text-[9px] tracking-wider text-emerald-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              {runtimeState}
+            </span>
+          </div>
+          <p className="mt-1.5 max-w-2xl text-xs text-neutral-500">Live control surface for governed agent reasoning, authorization, execution and immutable state.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => onNavigate('simulation')} className="flex h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 font-mono text-[10px] text-neutral-400 transition hover:bg-white/[0.05] hover:text-neutral-200">
+            <Sparkles className="h-3.5 w-3.5 text-amber-300" /> SIMULATE
+          </button>
+          <button onClick={onOpenQuickLaunch} className="flex h-9 items-center gap-2 rounded-lg bg-cyan-400 px-3.5 font-mono text-[10px] font-semibold text-[#041014] transition hover:bg-cyan-300">
+            <Play className="h-3.5 w-3.5 fill-current" /> DISPATCH TASK
+          </button>
+        </div>
+      </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => onNavigate('simulation')}
-              className="px-3.5 py-2 rounded-lg border border-neutral-700 bg-neutral-800/80 hover:bg-neutral-800 text-xs font-mono text-neutral-200 transition flex items-center gap-2"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-              <span>Simulation Sandbox</span>
-            </button>
-            <button
-              onClick={onOpenQuickLaunch}
-              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-xs font-mono font-bold text-neutral-950 transition flex items-center gap-2 shadow-sm"
-            >
-              <Play className="h-3.5 w-3.5 fill-current" />
-              <span>Dispatch New Task</span>
-            </button>
+      <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0d10] p-5 shadow-2xl shadow-black/20">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.08),transparent_32%),radial-gradient(circle_at_85%_100%,rgba(139,92,246,0.05),transparent_30%)]" />
+        <div className="relative flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-xl">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-md border border-cyan-400/15 bg-cyan-400/[0.04] px-2.5 py-1.5 font-mono text-[9px] tracking-[0.16em] text-cyan-200">
+              <LockKeyhole className="h-3.5 w-3.5" /> FUNDAMENTAL INVARIANT
+            </div>
+            <h2 className="font-mono text-xl font-semibold tracking-tight text-white">AI DECIDES <span className="text-cyan-300">≠</span> AI EXECUTES</h2>
+            <p className="mt-2 text-xs leading-5 text-neutral-500">Reasoning may propose. Evidence verifies. Deterministic policy authorizes. Execution occurs only after the governed path completes.</p>
+          </div>
+          <div className="grid min-w-[300px] grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[470px]">
+            {[
+              ['LEDGER', status?.ledgerIntegrity ?? 'VERIFYING', status?.ledgerIntegrity === 'VERIFIED' ? 'text-emerald-300' : 'text-amber-300'],
+              ['AGENTS', String(status?.activeAgents ?? activeAgents.length), 'text-cyan-300'],
+              ['EXECUTIONS', String(status?.activeExecutions ?? 0), 'text-violet-300'],
+              ['APPROVALS', String(status?.pendingApprovals ?? pendingApprovals.length), 'text-amber-300'],
+            ].map(([label, value, tone]) => (
+              <div key={label} className="rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2.5">
+                <div className="font-mono text-[8px] tracking-[0.18em] text-neutral-600">{label}</div>
+                <div className={`mt-1 text-sm font-semibold font-mono ${tone}`}>{value}</div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Runtime Pipeline Diagram */}
-        <div className="mt-5 pt-4 border-t border-neutral-800/80 overflow-x-auto">
-          <div className="flex items-center justify-between min-w-[760px] text-[11px] font-mono">
-            {[
-              { step: '1. REQUEST', sub: 'Observation' },
-              { step: '2. CONTEXT', sub: 'Assembly' },
-              { step: '3. REASONING', sub: 'Agent Model' },
-              { step: '4. PROPOSAL', sub: 'Action Plan' },
-              { step: '5. EVIDENCE', sub: 'Provenance' },
-              { step: '6. VERIFICATION', sub: 'Integrity Check' },
-              { step: '7. POLICY GATE', sub: 'ALLOW/DENY/ESC' },
-              { step: '8. EXECUTION', sub: 'Authorized Run' },
-              { step: '9. EVENT LEDGER', sub: 'SHA-256 Chain' },
-              { step: '10. MEMORY', sub: 'Distilled Knowledge' },
-            ].map((item, idx, arr) => (
-              <React.Fragment key={item.step}>
-                <div className="flex flex-col items-center text-center px-2 py-1 rounded bg-neutral-950/60 border border-neutral-800/60 min-w-[70px]">
-                  <span className="font-semibold text-neutral-200">{item.step}</span>
-                  <span className="text-[9px] text-neutral-400">{item.sub}</span>
+        <div className="relative mt-6 overflow-x-auto border-t border-white/[0.06] pt-5">
+          <div className="flex min-w-[930px] items-center">
+            {pipeline.map(([num, title, sub], index) => (
+              <React.Fragment key={num}>
+                <div className={`group min-w-[92px] flex-1 rounded-xl border px-2.5 py-2.5 text-center transition ${index === 6 ? 'border-cyan-400/25 bg-cyan-400/[0.06]' : 'border-white/[0.06] bg-black/20 hover:border-white/[0.12]'}`}>
+                  <div className="font-mono text-[8px] text-neutral-700">{num}</div>
+                  <div className="mt-1 text-[9px] font-semibold tracking-wider text-neutral-300">{title}</div>
+                  <div className="mt-1 text-[8px] text-neutral-600">{sub}</div>
                 </div>
-                {idx < arr.length - 1 && (
-                  <ArrowRight className="h-3 w-3 text-neutral-600 flex-shrink-0" />
-                )}
+                {index < pipeline.length - 1 && <ArrowRight className="mx-1.5 h-3 w-3 shrink-0 text-neutral-700" />}
               </React.Fragment>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* 2. Key Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {/* Ledger Integrity */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-neutral-400 text-xs font-mono">
-            <span>LEDGER STATE</span>
-            <Database className="h-4 w-4 text-cyan-400" />
-          </div>
-          <div className="my-2">
-            <div className="text-sm font-bold font-mono text-emerald-400 flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>{status?.ledgerIntegrity || 'VERIFIED'}</span>
-            </div>
-            <div className="text-[11px] font-mono text-neutral-400">
-              {status?.totalEvents || events.length} Canonical Events
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate('event-ledger')}
-            className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 mt-1"
-          >
-            <span>Inspect Chain</span>
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </div>
-
-        {/* Policy Gate Stats */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-neutral-400 text-xs font-mono">
-            <span>POLICY GATE</span>
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-          </div>
-          <div className="my-2">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold">
-              <span className="text-emerald-400">{status?.policyStats.allow ?? 0} Allow</span>
-              <span className="text-rose-400">{status?.policyStats.deny ?? 0} Deny</span>
-              <span className="text-amber-400">{status?.policyStats.escalate ?? 0} Esc</span>
-            </div>
-            <div className="text-[11px] font-mono text-neutral-400">
-              Deterministic Rules
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate('policy-gate')}
-            className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 mt-1"
-          >
-            <span>Configure Gate</span>
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </div>
-
-        {/* Pending Approvals */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-neutral-400 text-xs font-mono">
-            <span>APPROVAL QUEUE</span>
-            <ShieldAlert className="h-4 w-4 text-amber-400" />
-          </div>
-          <div className="my-2">
-            <div className="text-base font-bold font-mono text-neutral-100">
-              {pendingApprovals.length} <span className="text-xs font-normal text-amber-400">Escalated</span>
-            </div>
-            <div className="text-[11px] font-mono text-neutral-400">
-              Dual-Custody Human Sign-Off
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate('approvals')}
-            className="text-[11px] font-mono text-amber-400 hover:text-amber-300 flex items-center gap-1 mt-1 font-semibold"
-          >
-            <span>Review Queue</span>
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </div>
-
-        {/* Active Agents */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-neutral-400 text-xs font-mono">
-            <span>AGENT RUNTIME</span>
-            <Cpu className="h-4 w-4 text-cyan-400" />
-          </div>
-          <div className="my-2">
-            <div className="text-base font-bold font-mono text-neutral-100">
-              {status?.activeAgents ?? agents.length} <span className="text-xs font-normal text-cyan-400">Specialists</span>
-            </div>
-            <div className="text-[11px] font-mono text-neutral-400">
-              Server-Side Reasoning
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate('agents')}
-            className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 mt-1"
-          >
-            <span>Agent Registry</span>
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </div>
-
-        {/* Context & Memory */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-neutral-400 text-xs font-mono">
-            <span>STATE MEMORY</span>
-            <Brain className="h-4 w-4 text-purple-400" />
-          </div>
-          <div className="my-2">
-            <div className="text-base font-bold font-mono text-neutral-100">
-              {status?.totalMemoryRecords ?? 5} <span className="text-xs font-normal text-purple-400">Records</span>
-            </div>
-            <div className="text-[11px] font-mono text-neutral-400">
-              Provenance-Linked
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate('memory')}
-            className="text-[11px] font-mono text-purple-400 hover:text-purple-300 flex items-center gap-1 mt-1"
-          >
-            <span>Explore Memory</span>
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </div>
-
-        {/* Product Integrations */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-neutral-400 text-xs font-mono">
-            <span>DOMAIN ADAPTERS</span>
-            <Boxes className="h-4 w-4 text-emerald-400" />
-          </div>
-          <div className="my-2">
-            <div className="text-base font-bold font-mono text-neutral-100">
-              6 <span className="text-xs font-normal text-emerald-400">Connected</span>
-            </div>
-            <div className="text-[11px] font-mono text-neutral-400">
-              BitMiner, SecureOS, ArchOS
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate('products')}
-            className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 mt-1"
-          >
-            <span>View Adapters</span>
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Main Dashboard 2-Column Split: Active Executions & Live Ledger Stream */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Recent Executions & Human Approval Alerts */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Pending Approval Alert Card (if any) */}
-          {pendingApprovals.length > 0 && (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 space-y-3">
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {[
+          { label: 'CANONICAL EVENTS', value: status?.totalEvents ?? events.length, sub: 'ledger records', icon: Database, action: 'event-ledger', tone: 'text-cyan-300' },
+          { label: 'PROVENANCE', value: `${status?.provenanceIntegrityPct ?? 0}%`, sub: 'integrity coverage', icon: GitBranch, action: 'evidence-provenance', tone: 'text-violet-300' },
+          { label: 'POLICY', value: `${status?.policyStats.allow ?? 0} / ${status?.policyStats.deny ?? 0}`, sub: 'allow / deny', icon: ShieldCheck, action: 'policy-gate', tone: 'text-emerald-300' },
+          { label: 'MEMORY', value: status?.totalMemoryRecords ?? 0, sub: 'linked records', icon: Brain, action: 'memory', tone: 'text-fuchsia-300' },
+        ].map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <button key={metric.label} onClick={() => onNavigate(metric.action)} className="group rounded-xl border border-white/[0.07] bg-white/[0.02] p-3.5 text-left transition hover:border-white/[0.12] hover:bg-white/[0.035]">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Human-in-the-Loop Approval Required ({pendingApprovals.length})</span>
-                </div>
-                <button
-                  onClick={() => onNavigate('approvals')}
-                  className="px-2.5 py-1 rounded bg-amber-500 text-neutral-950 text-xs font-mono font-bold hover:bg-amber-400 transition"
-                >
-                  Review All
-                </button>
+                <span className="font-mono text-[8px] tracking-[0.18em] text-neutral-600">{metric.label}</span>
+                <Icon className={`h-3.5 w-3.5 ${metric.tone}`} />
               </div>
+              <div className="mt-2 text-lg font-semibold font-mono text-neutral-100">{metric.value}</div>
+              <div className="mt-0.5 text-[9px] text-neutral-600">{metric.sub}</div>
+            </button>
+          );
+        })}
+      </div>
 
-              <div className="space-y-2">
-                {pendingApprovals.slice(0, 2).map((appr) => (
-                  <div
-                    key={appr.id}
-                    className="p-3 rounded-lg border border-amber-500/20 bg-neutral-950/60 flex items-start justify-between gap-3 text-xs"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-amber-300">{appr.id}</span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-950/50 text-amber-400 border border-amber-800/40">
-                          {appr.policyName}
-                        </span>
-                      </div>
-                      <p className="text-neutral-300 font-medium">{appr.proposal.summary}</p>
-                      <div className="text-[11px] font-mono text-neutral-400 flex items-center gap-3">
-                        <span>Agent: {appr.agentName}</span>
-                        <span>Risk Score: <strong className="text-amber-400">{appr.riskScore}/100</strong></span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => onNavigate('approvals')}
-                      className="px-3 py-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-mono transition flex-shrink-0"
-                    >
-                      Inspect
-                    </button>
-                  </div>
-                ))}
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_0.85fr]">
+        <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0d10]">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3.5">
+            <div className="flex items-center gap-2">
+              <Workflow className="h-4 w-4 text-cyan-300" />
+              <div>
+                <h3 className="text-xs font-semibold tracking-wide text-neutral-200">ACTIVE EXECUTION GRAPH</h3>
+                <p className="mt-0.5 font-mono text-[8px] tracking-wider text-neutral-600">LIVE PIPELINES / TRACE STATE</p>
               </div>
             </div>
-          )}
-
-          {/* Executions Panel */}
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-cyan-400" />
-                <h2 className="text-sm font-bold font-mono text-neutral-100 uppercase">
-                  Runtime Executions & Pipelines
-                </h2>
-              </div>
-              <button
-                onClick={() => onNavigate('executions')}
-                className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-              >
-                <span>View All ({executions.length})</span>
-                <ArrowRight className="h-3 w-3" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {executions.slice(0, 5).map((exec) => {
-                const isComplete = exec.status === 'COMPLETED';
-                const isDenied = exec.status === 'DENIED';
-                const isEscalated = exec.status === 'ESCALATED';
-
-                return (
-                  <div
-                    key={exec.executionId}
-                    onClick={() => onSelectExecution(exec.executionId)}
-                    className="p-3 rounded-lg border border-neutral-800 bg-neutral-950 hover:border-neutral-700 transition cursor-pointer group"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-neutral-200 group-hover:text-cyan-300">
-                          {exec.executionId}
-                        </span>
-                        <span className="text-[10px] font-mono text-neutral-400">
-                          {exec.agentReasoning.specialist}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
-                            isComplete
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                              : isDenied
-                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                              : isEscalated
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                              : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
-                          }`}
-                        >
-                          {exec.status}
-                        </span>
-                        <span className="text-[10px] font-mono text-neutral-400">
-                          {new Date(exec.timestamp).toLocaleTimeString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-neutral-300 font-medium truncate">
-                      {exec.request.input}
-                    </p>
-
-                    {exec.proposal && (
-                      <div className="mt-2 pt-2 border-t border-neutral-900 flex items-center justify-between text-[11px] font-mono text-neutral-400">
-                        <span className="truncate max-w-[280px]">
-                          Action: <strong className="text-neutral-200">{exec.proposal.requestedAction}</strong>
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <span>Risk: <strong className="text-neutral-200">{exec.proposal.riskScore}</strong></span>
-                          <span>Confidence: <strong className="text-neutral-200">{exec.proposal.confidence}%</strong></span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <button onClick={() => onNavigate('executions')} className="flex items-center gap-1 font-mono text-[9px] text-cyan-400 hover:text-cyan-300">OPEN <ChevronRight className="h-3 w-3" /></button>
           </div>
-        </div>
-
-        {/* Right Column: Live Event Ledger Stream */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Database className="h-4 w-4 text-cyan-400" />
-                <h2 className="text-sm font-bold font-mono text-neutral-100 uppercase">
-                  Canonical Event Ledger
-                </h2>
-              </div>
-              <button
-                onClick={() => onNavigate('event-ledger')}
-                className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-              >
-                <span>Ledger Explorer</span>
-                <ArrowRight className="h-3 w-3" />
+          <div className="divide-y divide-white/[0.05]">
+            {recentExecutions.length === 0 ? (
+              <div className="flex min-h-[190px] items-center justify-center text-xs text-neutral-600">No executions recorded.</div>
+            ) : recentExecutions.map((execution) => (
+              <button key={execution.executionId} onClick={() => onSelectExecution(execution.executionId)} className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-white/[0.025]">
+                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-black/20">
+                  <CircleDot className={`h-3.5 w-3.5 ${toneForStatus(execution.status)}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-mono text-[10px] text-neutral-300">{execution.executionId}</span>
+                    <span className={`font-mono text-[8px] tracking-wider ${toneForStatus(execution.status)}`}>{execution.status}</span>
+                  </div>
+                  <div className="mt-1 truncate text-[10px] text-neutral-600">{execution.request.input}</div>
+                </div>
+                <div className="hidden items-center gap-1.5 font-mono text-[8px] text-neutral-600 sm:flex"><Clock3 className="h-3 w-3" />{formatTime(execution.timestamp)}</div>
+                <ChevronRight className="h-3.5 w-3.5 text-neutral-700 transition group-hover:text-neutral-400" />
               </button>
-            </div>
+            ))}
+          </div>
+        </section>
 
+        <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0d10]">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3.5">
+            <div className="flex items-center gap-2">
+              <Radio className="h-4 w-4 text-cyan-300" />
+              <div>
+                <h3 className="text-xs font-semibold tracking-wide text-neutral-200">EVENT STREAM</h3>
+                <p className="mt-0.5 font-mono text-[8px] tracking-wider text-neutral-600">CANONICAL LEDGER FEED</p>
+              </div>
+            </div>
+            <span className="flex items-center gap-1.5 font-mono text-[8px] text-emerald-300"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> LIVE</span>
+          </div>
+          <div className="max-h-[315px] overflow-y-auto divide-y divide-white/[0.05]">
+            {recentEvents.length === 0 ? (
+              <div className="flex min-h-[190px] items-center justify-center text-xs text-neutral-600">Waiting for canonical events.</div>
+            ) : recentEvents.map((event) => (
+              <button key={event.id} onClick={() => onSelectEvent(event)} className="group flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-white/[0.025]">
+                <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${event.integrityStatus === 'VALID' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[10px] font-medium text-neutral-300">{event.name}</div>
+                  <div className="mt-1 flex items-center gap-2 font-mono text-[8px] text-neutral-600">
+                    <span>{event.type}</span><span>•</span><span>{formatTime(event.timestamp)}</span>
+                  </div>
+                </div>
+                <ChevronRight className="h-3.5 w-3.5 text-neutral-700 group-hover:text-neutral-400" />
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <section className="rounded-2xl border border-white/[0.07] bg-[#0a0d10] p-4 lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2"><Cpu className="h-4 w-4 text-cyan-300" /><h3 className="text-xs font-semibold tracking-wide">AGENT FABRIC</h3></div>
+            <button onClick={() => onNavigate('agents')} className="font-mono text-[9px] text-cyan-400">REGISTRY →</button>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {activeAgents.slice(0, 6).map((agent) => (
+              <div key={agent.id} className="rounded-xl border border-white/[0.06] bg-black/20 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-[10px] font-medium text-neutral-300">{agent.name}</span>
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${agent.status === 'BUSY' ? 'bg-cyan-300 shadow-[0_0_7px_rgba(103,232,249,0.8)]' : 'bg-emerald-400'}`} />
+                </div>
+                <div className="mt-1.5 font-mono text-[8px] text-neutral-600">{agent.type} / {agent.modelProvider}</div>
+                <div className="mt-2 flex items-center justify-between font-mono text-[8px]"><span className="text-neutral-600">CONFIDENCE</span><span className="text-cyan-300">{agent.confidence}%</span></div>
+              </div>
+            ))}
+            {activeAgents.length === 0 && <div className="col-span-full py-8 text-center text-xs text-neutral-600">No active agents.</div>}
+          </div>
+        </section>
+
+        <section className={`rounded-2xl border p-4 ${pendingApprovals.length > 0 ? 'border-amber-400/20 bg-amber-400/[0.035]' : 'border-white/[0.07] bg-[#0a0d10]'}`}>
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2"><FileCheck2 className="h-4 w-4 text-amber-300" /><h3 className="text-xs font-semibold tracking-wide">HUMAN GATE</h3></div>
+            <span className="rounded-full bg-amber-400/10 px-2 py-1 font-mono text-[8px] text-amber-300">{pendingApprovals.length} PENDING</span>
+          </div>
+          {pendingApprovals.length > 0 ? (
             <div className="space-y-2">
-              {events.slice(0, 6).map((evt) => (
-                <div
-                  key={evt.id}
-                  onClick={() => onSelectEvent(evt)}
-                  className="p-3 rounded-lg border border-neutral-800/80 bg-neutral-950 hover:border-neutral-700 transition cursor-pointer group"
-                >
-                  <div className="flex items-center justify-between gap-2 text-xs">
-                    <span className="font-mono font-bold text-cyan-400 group-hover:text-cyan-300 truncate">
-                      {evt.name}
-                    </span>
-                    <span className="text-[10px] font-mono text-neutral-400 flex-shrink-0">
-                      {new Date(evt.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-neutral-400">
-                    <span className="truncate">Type: {evt.type}</span>
-                    <span>•</span>
-                    <span className="truncate">Actor: {evt.actor.name}</span>
-                  </div>
-
-                  <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-neutral-400 pt-1.5 border-t border-neutral-900">
-                    <span className="truncate max-w-[180px]">Hash: {evt.currentEventHash.substring(0, 16)}...</span>
-                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                      <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                      SHA-256 LINKED
-                    </span>
-                  </div>
-                </div>
+              {pendingApprovals.slice(0, 2).map((approval) => (
+                <button key={approval.id} onClick={() => onNavigate('approvals')} className="w-full rounded-xl border border-amber-400/10 bg-black/20 p-3 text-left transition hover:border-amber-400/20">
+                  <div className="font-mono text-[8px] text-amber-300">{approval.id}</div>
+                  <div className="mt-1.5 line-clamp-2 text-[10px] text-neutral-300">{approval.proposal.summary}</div>
+                  <div className="mt-2 flex items-center justify-between font-mono text-[8px] text-neutral-600"><span>RISK</span><span className="text-amber-300">{approval.riskScore}/100</span></div>
+                </button>
               ))}
+              <button onClick={() => onNavigate('approvals')} className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg bg-amber-400 px-3 py-2 font-mono text-[9px] font-semibold text-[#171006]">REVIEW QUEUE <ArrowRight className="h-3 w-3" /></button>
             </div>
-          </div>
+          ) : (
+            <div className="flex min-h-[150px] flex-col items-center justify-center text-center"><CheckCircle2 className="h-7 w-7 text-emerald-400" /><div className="mt-2 text-xs font-medium text-neutral-300">No human action required</div><div className="mt-1 text-[9px] text-neutral-600">Policy gate is clear.</div></div>
+          )}
+        </section>
+      </div>
 
-          {/* Active Agents Snapshot */}
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Cpu className="h-4 w-4 text-purple-400" />
-                <h3 className="text-xs font-bold font-mono text-neutral-200 uppercase">
-                  Specialist Agents Registry
-                </h3>
-              </div>
-              <button
-                onClick={() => onNavigate('agents')}
-                className="text-xs font-mono text-purple-400 hover:text-purple-300"
-              >
-                All Agents
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {agents.slice(0, 4).map((ag) => (
-                <div
-                  key={ag.id}
-                  className="p-2.5 rounded-lg border border-neutral-800/80 bg-neutral-950 text-xs font-mono space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-neutral-200 truncate">{ag.name.split(' ')[0]}</span>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                      {ag.status}
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-neutral-400 truncate">{ag.type}</div>
-                  <div className="text-[10px] text-cyan-400">Score: {ag.performanceScore}%</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-4 py-3 font-mono text-[8px] text-neutral-600">
+        <div className="flex items-center gap-3"><span className="flex items-center gap-1.5"><Activity className="h-3 w-3 text-cyan-400" /> RUNTIME LINKED</span><span>•</span><span>SHA-256 EVENT CHAIN</span></div>
+        <div className="flex items-center gap-3"><span>LAST CHECK</span><span className="text-neutral-500">{status?.lastIntegrityCheck ? formatTime(status.lastIntegrityCheck) : '—'}</span></div>
       </div>
     </div>
   );
