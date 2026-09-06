@@ -1,27 +1,27 @@
 import React from 'react';
 import {
-  LayoutDashboard,
-  Users,
-  GitCommit,
-  Scale,
-  GitPullRequest,
-  ShieldCheck,
-  Lock,
-  CheckSquare,
-  Database,
+  Activity,
+  Boxes,
   Brain,
-  Layers,
-  RotateCcw,
-  Wrench,
-  Server,
-  Clock,
-  LineChart,
+  CheckSquare,
+  Clock3,
+  Database,
   FlaskConical,
   Gauge,
-  Workflow,
-  Boxes,
+  GitCommit,
+  GitPullRequest,
+  Layers3,
+  LayoutDashboard,
+  LineChart,
+  LockKeyhole,
+  RotateCcw,
+  Scale,
+  Server,
   Settings,
-  ChevronRight,
+  ShieldCheck,
+  Users,
+  Workflow,
+  Wrench,
 } from 'lucide-react';
 import type { SystemStatus } from '../types';
 
@@ -33,35 +33,30 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, status }) => {
   const sections = [
-    {
-      title: 'CORE',
-      items: [
-        { id: 'command-center', label: 'Command Center', icon: LayoutDashboard },
-      ],
-    },
+    { title: 'CONTROL', items: [{ id: 'command-center', label: 'Command Center', icon: LayoutDashboard }] },
     {
       title: 'RUNTIME',
       items: [
-        { id: 'agents', label: 'Agents Registry', icon: Users, badge: status?.activeAgents },
+        { id: 'agents', label: 'Agents', icon: Users, badge: status?.activeAgents },
         { id: 'executions', label: 'Executions', icon: GitCommit, badge: status?.activeExecutions },
         { id: 'arbitration', label: 'Arbitration', icon: Scale },
       ],
     },
     {
-      title: 'TRUST & GOVERNANCE',
+      title: 'TRUST',
       items: [
         { id: 'evidence-provenance', label: 'Evidence & Provenance', icon: GitPullRequest },
         { id: 'policy-gate', label: 'Policy Gate', icon: ShieldCheck },
-        { id: 'approvals', label: 'Approval Queue', icon: CheckSquare, badge: status?.pendingApprovals, badgeColor: 'bg-amber-500 text-neutral-950 font-bold' },
-        { id: 'security', label: 'Security & Identities', icon: Lock },
+        { id: 'approvals', label: 'Approval Queue', icon: CheckSquare, badge: status?.pendingApprovals, badgeTone: 'amber' },
+        { id: 'security', label: 'Security & Identities', icon: LockKeyhole },
       ],
     },
     {
-      title: 'STATE & LEDGER',
+      title: 'STATE',
       items: [
         { id: 'event-ledger', label: 'Event Ledger', icon: Database, badge: status?.totalEvents },
         { id: 'memory', label: 'Memory Explorer', icon: Brain, badge: status?.totalMemoryRecords },
-        { id: 'context', label: 'Context Assembly', icon: Layers },
+        { id: 'context', label: 'Context Assembly', icon: Layers3 },
         { id: 'replay-recovery', label: 'Replay & Recovery', icon: RotateCcw },
       ],
     },
@@ -70,8 +65,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, statu
       items: [
         { id: 'tools', label: 'Tool Registry', icon: Wrench },
         { id: 'providers', label: 'Provider Registry', icon: Server },
-        { id: 'scheduler', label: 'Scheduler', icon: Clock },
-        { id: 'observability', label: 'Observability & Traces', icon: LineChart },
+        { id: 'scheduler', label: 'Scheduler', icon: Clock3 },
+        { id: 'observability', label: 'Observability', icon: LineChart },
       ],
     },
     {
@@ -82,53 +77,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, statu
         { id: 'reasoning', label: 'Reasoning Inspector', icon: Workflow },
       ],
     },
-    {
-      title: 'PRODUCTS & DOMAINS',
-      items: [
-        { id: 'products', label: 'Product Integrations', icon: Boxes },
-      ],
-    },
-    {
-      title: 'SYSTEM',
-      items: [
-        { id: 'settings', label: 'Settings & Health', icon: Settings },
-      ],
-    },
+    { title: 'DOMAINS', items: [{ id: 'products', label: 'Product Integrations', icon: Boxes }] },
+    { title: 'SYSTEM', items: [{ id: 'settings', label: 'Settings & Health', icon: Settings }] },
   ];
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-neutral-800 bg-neutral-950/80 flex flex-col h-[calc(100vh-57px)] overflow-y-auto select-none">
-      <div className="p-3 space-y-6">
+    <aside className="flex h-[calc(100vh-62px)] w-[248px] shrink-0 flex-col border-r border-white/[0.06] bg-[#080a0c]/95 select-none">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-4 [scrollbar-width:thin]">
         {sections.map((section) => (
-          <div key={section.title} className="space-y-1">
-            <div className="px-2.5 text-[10px] font-mono font-semibold tracking-wider text-neutral-400 uppercase">
+          <div key={section.title} className="mb-5 last:mb-0">
+            <div className="mb-1.5 px-2.5 font-mono text-[8px] font-semibold tracking-[0.22em] text-neutral-600">
               {section.title}
             </div>
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = currentTab === item.id;
+                const active = currentTab === item.id;
                 return (
                   <button
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                      isActive
-                        ? 'bg-cyan-500/10 text-cyan-300 font-semibold border border-cyan-500/30'
-                        : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900 border border-transparent'
+                    className={`group relative flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-left transition-all ${
+                      active
+                        ? 'border-cyan-400/20 bg-cyan-400/[0.07] text-cyan-200 shadow-[inset_2px_0_0_rgba(103,232,249,0.8)]'
+                        : 'border-transparent text-neutral-500 hover:border-white/[0.05] hover:bg-white/[0.025] hover:text-neutral-200'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-cyan-400' : 'text-neutral-400'}`} />
-                      <span className="truncate">{item.label}</span>
-                    </div>
-
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <Icon className={`h-[15px] w-[15px] shrink-0 ${active ? 'text-cyan-300' : 'text-neutral-600 group-hover:text-neutral-400'}`} />
+                      <span className="truncate text-[11px] font-medium tracking-wide">{item.label}</span>
+                    </span>
                     {item.badge !== undefined && item.badge !== null && item.badge > 0 && (
-                      <span
-                        className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                          item.badgeColor || (isActive ? 'bg-cyan-500/20 text-cyan-200' : 'bg-neutral-800 text-neutral-400')
-                        }`}
-                      >
+                      <span className={`ml-2 rounded-full px-1.5 py-0.5 font-mono text-[8px] leading-none ${item.badgeTone === 'amber' ? 'bg-amber-400/15 text-amber-300' : active ? 'bg-cyan-400/15 text-cyan-200' : 'bg-white/[0.06] text-neutral-600'}`}>
                         {item.badge}
                       </span>
                     )}
@@ -140,17 +120,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, statu
         ))}
       </div>
 
-      <div className="mt-auto p-3 border-t border-neutral-800 bg-neutral-900/50">
-        <div className="rounded border border-neutral-800 bg-neutral-950 p-2.5 text-[11px] font-mono text-neutral-400">
-          <div className="flex items-center justify-between text-neutral-300 font-medium mb-1">
-            <span>KERNEL DAEMON</span>
-            <span className="text-emerald-400 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      <div className="border-t border-white/[0.06] p-2.5">
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-mono text-[8px] font-semibold tracking-[0.18em] text-neutral-500">KERNEL DAEMON</span>
+            <span className="flex items-center gap-1.5 font-mono text-[8px] tracking-wider text-emerald-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_7px_rgba(52,211,153,0.8)]" />
               ONLINE
             </span>
           </div>
-          <div className="text-[10px] text-neutral-400 truncate">
-            Source: Daniel550-pixel/The-Factory
+          <div className="flex items-center justify-between font-mono text-[8px] text-neutral-600">
+            <span>GOVERNED RUNTIME</span>
+            <Activity className="h-3 w-3 text-neutral-700" />
           </div>
         </div>
       </div>
