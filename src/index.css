@@ -11,9 +11,7 @@
     --factory-cyan: #67e8f9;
   }
 
-  html {
-    background: var(--factory-bg);
-  }
+  html { background: var(--factory-bg); }
 
   body {
     margin: 0;
@@ -28,46 +26,16 @@
     text-rendering: optimizeLegibility;
   }
 
-  button,
-  input,
-  textarea,
-  select {
-    font: inherit;
-  }
+  button, input, textarea, select { font: inherit; }
+  button { -webkit-tap-highlight-color: transparent; }
+  ::selection { background: rgba(34, 211, 238, 0.24); color: #cffafe; }
+  :focus-visible { outline: 1px solid rgba(103, 232, 249, 0.65); outline-offset: 2px; }
+  code, pre, kbd, samp, .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 
-  button {
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  ::selection {
-    background: rgba(34, 211, 238, 0.24);
-    color: #cffafe;
-  }
-
-  :focus-visible {
-    outline: 1px solid rgba(103, 232, 249, 0.65);
-    outline-offset: 2px;
-  }
-
-  code, pre, kbd, samp, .font-mono {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  }
-
-  /* Technical control-plane scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #27272a;
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #3f3f46;
-  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 }
 
 @layer utilities {
@@ -78,9 +46,14 @@
     background-size: 32px 32px;
   }
 
-  .factory-vignette {
-    box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.22);
+  .factory-grid-fine {
+    background-image:
+      linear-gradient(rgba(103, 232, 249, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(103, 232, 249, 0.035) 1px, transparent 1px);
+    background-size: 16px 16px;
   }
+
+  .factory-vignette { box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.22); }
 
   .factory-panel {
     border: 1px solid var(--factory-border);
@@ -94,18 +67,85 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
   }
 
-  .factory-enter {
-    animation: factory-enter 220ms ease-out both;
+  .factory-spatial {
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(34, 211, 238, 0.08), transparent 18rem),
+      radial-gradient(circle at 78% 65%, rgba(139, 92, 246, 0.07), transparent 16rem),
+      linear-gradient(180deg, rgba(255,255,255,0.018), transparent 34%),
+      #070a0d;
+    box-shadow: inset 0 0 90px rgba(0,0,0,.42), 0 24px 80px rgba(0,0,0,.22);
   }
+
+  .factory-spatial::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background: linear-gradient(transparent 49%, rgba(103,232,249,.018) 50%, transparent 51%);
+    background-size: 100% 8px;
+    opacity: .35;
+  }
+
+  .factory-node {
+    position: relative;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(5,8,10,.82);
+    box-shadow: 0 12px 32px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.025);
+    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  }
+
+  .factory-node:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.16); }
+  .factory-node-active {
+    border-color: rgba(103,232,249,.34);
+    background: rgba(34,211,238,.055);
+    box-shadow: 0 0 0 1px rgba(103,232,249,.05), 0 0 34px rgba(34,211,238,.09), 0 16px 38px rgba(0,0,0,.3);
+  }
+
+  .factory-node-active::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 1px solid rgba(103,232,249,.16);
+    border-radius: inherit;
+    animation: factory-pulse 2.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .factory-signal {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .factory-signal::after {
+    content: '';
+    position: absolute;
+    left: -20%;
+    top: 0;
+    width: 18%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(103,232,249,.35), transparent);
+    animation: factory-scan 2.8s linear infinite;
+  }
+
+  .factory-enter { animation: factory-enter 220ms ease-out both; }
 
   @keyframes factory-enter {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  @keyframes factory-pulse {
+    0%, 100% { opacity: .25; transform: scale(1); }
+    50% { opacity: .7; transform: scale(1.012); }
+  }
+  @keyframes factory-scan {
+    from { transform: translateX(0); }
+    to { transform: translateX(700%); }
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    .factory-enter {
-      animation: none;
-    }
+    .factory-enter, .factory-node-active::before, .factory-signal::after { animation: none; }
   }
 }
