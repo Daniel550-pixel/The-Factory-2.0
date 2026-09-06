@@ -50,26 +50,16 @@ function chunkMarkdown(content: string, maxChars = 2400): string[] {
   let current = '';
 
   for (const section of sections) {
-    if (!current) {
-      current = section;
-    } else if ((current + '\n\n' + section).length <= maxChars) {
-      current += '\n\n' + section;
-    } else {
-      chunks.push(current.trim());
-      current = section;
-    }
+    if (!current) current = section;
+    else if ((current + '\n\n' + section).length <= maxChars) current += '\n\n' + section;
+    else { chunks.push(current.trim()); current = section; }
   }
   if (current.trim()) chunks.push(current.trim());
 
   const finalChunks: string[] = [];
   for (const chunk of chunks) {
-    if (chunk.length <= maxChars) {
-      finalChunks.push(chunk);
-      continue;
-    }
-    for (let i = 0; i < chunk.length; i += maxChars) {
-      finalChunks.push(chunk.slice(i, i + maxChars).trim());
-    }
+    if (chunk.length <= maxChars) finalChunks.push(chunk);
+    else for (let i = 0; i < chunk.length; i += maxChars) finalChunks.push(chunk.slice(i, i + maxChars).trim());
   }
   return finalChunks.filter(Boolean);
 }
@@ -89,15 +79,7 @@ export function ingestKnowledge(
 
   let source = sources.get(sourceId);
   if (!source) {
-    source = {
-      id: sourceId,
-      type: request.sourceType,
-      name: request.sourceName,
-      path: request.path,
-      status: 'INGESTING',
-      documents: 0,
-      chunks: 0,
-    };
+    source = { id: sourceId, type: request.sourceType, name: request.sourceName, path: request.path, status: 'INGESTING', documents: 0, chunks: 0 };
     sources.set(sourceId, source);
   }
   source.status = 'INGESTING';
@@ -111,11 +93,7 @@ export function ingestKnowledge(
 
   const chunks = chunkMarkdown(request.content);
   const memoryIds: string[] = [];
-  const baseTags = [
-    'knowledge',
-    request.sourceType.toLowerCase(),
-    ...(request.tags || []),
-  ];
+  const baseTags = ['knowledge', request.sourceType.toLowerCase(), ...(request.tags || [])];
 
   chunks.forEach((chunk, index) => {
     const memoryId = `kmem-${sha256(`${documentId}:${contentHash}:${index}`).slice(0, 20)}`;
@@ -128,13 +106,7 @@ export function ingestKnowledge(
       provenance: {
         sourceId: documentId,
         traceId: `knowledge-ingest-${contentHash.slice(0, 12)}`,
-        chain: [
-          request.sourceType,
-          'Document Ingestion',
-          'SHA-256 Content Identity',
-          'Markdown Chunking',
-          type,
-        ],
+        chain: [request.sourceType, 'Document Ingestion', 'SHA-256 Content Identity', 'Markdown Chunking', type],
       },
       timestamp: new Date().toISOString(),
       confidence: request.sourceType === 'CLAUDE' ? 85 : 95,
@@ -154,28 +126,11 @@ export function ingestKnowledge(
   source.error = undefined;
 
   appendEvent({
-    id: `EVT-${Date.now()}-KNOWLEDGE-INGEST`,
-    name: 'KnowledgeSourceIngested',
-    type: 'MEMORY_COMMITTED',
-    timestamp: new Date().toISOString(),
-    actor: { id: 'act-knowledge-ingest', name: 'Factory Knowledge Ingestion Kernel', role: 'SYSTEM' },
-    executionId: 'EX-KNOWLEDGE-INGEST',
-    traceId: `knowledge-ingest-${contentHash.slice(0, 12)}`,
-    causation: 'KNOWLEDGE_SOURCE_SUBMITTED',
-    correlation: sourceId,
-    provenance: {
-      source: `${request.sourceType}:${request.sourceName}`,
-      confidence: 100,
-      chain: ['Source', 'ContentHash', 'Chunking', 'MemoryCommit'],
-    },
-    payload: {
-      sourceId,
-      documentId,
-      contentHash,
-      chunksCreated: chunks.length,
-      path: request.path,
-      metadata: request.metadata || {},
-    },
+    id: `EVT-${Date.now()}-KNOWLEDGE-INGEST`, name: 'KnowledgeSourceIngested', type: 'MEMORY_COMMITTED', timestamp: new Date().toISOString(),
+    actor: { id: 'act-knowledge-ingest', name: 'Factory Knowledge Ingestion Kernel', role: 'SYSTEM' }, executionId: 'EX-KNOWLEDGE-INGEST',
+    traceId: `knowledge-ingest-${contentHash.slice(0, 12)}`, causation: 'KNOWLEDGE_SOURCE_SUBMITTED', correlation: sourceId,
+    provenance: { source: `${request.sourceType}:${request.sourceName}`, confidence: 100, chain: ['Source', 'ContentHash', 'Chunking', 'MemoryCommit'] },
+    payload: { sourceId, documentId, contentHash, chunksCreated: chunks.length, path: request.path, metadata: request.metadata || {} },
   });
 
   return { source, documentId, contentHash, chunksCreated: chunks.length, memoryIds };
@@ -189,17 +144,18 @@ export function ingestKnowledgeAtomic(
   if (requests.length === 0) throw new Error('At least one knowledge item is required');
 
   const memorySnapshot = new Map(memory);
-  const sourceSnapshot = new Map(
-    Array.from(sources.entries()).map(([id, source]) => [id, { ...source }]),
-  );
+  const sourceSnapshot = new Map(Array.from(sources.entries()).map(([id, source]) => [id, { ...source }]));
   const documentHashSnapshot = new Map(documentHashes);
-  const eventSnapshotLength = (() => {
-    const target = appendEvent as ((event: any) => any) & { __eventStore?: any[] };
-    return Array.isArray(target.__eventStore) ? target.__eventStore.length : null;
-  })();
+  const stagedEvents: any[] = [];
 
   try {
-    return requests.map((request) => ingestKnowledge(request, memory, appendEvent));
+    const results = requests.map((request) => ingestKnowledge(request, memory, (event) => {
+      stagedEvents.push(event);
+      return event;
+    }));
+
+    for (const event of stagedEvents) appendEvent(event);
+    return results;
   } catch (error) {
     memory.clear();
     for (const [id, record] of memorySnapshot) memory.set(id, record);
@@ -210,19 +166,12 @@ export function ingestKnowledgeAtomic(
     documentHashes.clear();
     for (const [id, hash] of documentHashSnapshot) documentHashes.set(id, hash);
 
-    if (eventSnapshotLength !== null) {
-      const target = appendEvent as ((event: any) => any) & { __eventStore?: any[] };
-      target.__eventStore!.length = eventSnapshotLength;
-    }
-
     throw error;
   }
 }
 
 export function listKnowledgeSources(): KnowledgeSource[] {
-  return Array.from(sources.values()).sort((a, b) =>
-    (b.lastIngested || '').localeCompare(a.lastIngested || '')
-  );
+  return Array.from(sources.values()).sort((a, b) => (b.lastIngested || '').localeCompare(a.lastIngested || ''));
 }
 
 export function getKnowledgeStats(memory: Map<string, MemoryRecord>) {
