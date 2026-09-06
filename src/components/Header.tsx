@@ -42,17 +42,17 @@ export const Header: React.FC<HeaderProps> = ({
   const ledgerVerified = status?.ledgerIntegrity === 'VERIFIED';
 
   return (
-    <header className="sticky top-0 z-50 h-[62px] w-full border-b border-white/[0.07] bg-[#07090b]/90 backdrop-blur-xl">
-      <div className="flex h-full items-center gap-3 px-4">
+    <header className="sticky top-0 z-50 h-[64px] w-full border-b border-white/[0.07] bg-[#07090b]/92 backdrop-blur-xl">
+      <div className="flex h-full items-center gap-3 px-4 lg:px-5">
         <div className="flex min-w-[220px] items-center gap-3">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/25 bg-cyan-400/[0.07] text-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.08)]">
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/25 bg-cyan-400/[0.07] text-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.08)]">
             <Cpu className="h-[18px] w-[18px]" />
             <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.9)]" />
           </div>
           <div className="leading-none">
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-semibold tracking-[0.18em] text-white">THE FACTORY</span>
-              <span className="rounded-md border border-white/[0.08] bg-white/[0.035] px-1.5 py-1 font-mono text-[9px] tracking-wider text-neutral-500">K2.4</span>
+              <span className="rounded border border-white/[0.08] bg-white/[0.035] px-1.5 py-1 font-mono text-[9px] tracking-wider text-neutral-500">K2.4</span>
             </div>
             <div className="mt-1.5 flex items-center gap-1.5 font-mono text-[9px] tracking-[0.14em] text-neutral-500">
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
@@ -62,35 +62,35 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="hidden min-w-0 flex-1 items-center gap-2 xl:flex">
-          <div className="flex min-w-0 items-center gap-2 rounded-lg border border-cyan-400/15 bg-cyan-400/[0.035] px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2 rounded-md border border-cyan-400/15 bg-cyan-400/[0.035] px-3 py-2">
             <LockKeyhole className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
-            <span className="truncate font-mono text-[10px] tracking-wide text-cyan-200/80">
+            <span className="truncate font-mono text-[10px] font-medium tracking-wide text-cyan-200/80">
               AI DECIDES <span className="text-cyan-400">≠</span> AI EXECUTES
             </span>
           </div>
-          <div className="hidden 2xl:flex items-center gap-2 font-mono text-[9px] tracking-wider text-neutral-600">
+          <div className="hidden 2xl:flex items-center gap-2 font-mono text-[9px] font-medium tracking-wider text-neutral-600">
             <span>/</span>
             <span>GOVERNED RUNTIME</span>
           </div>
         </div>
 
         <div className="hidden items-center gap-1.5 2xl:flex">
-          <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.025] px-2.5 py-2 font-mono text-[9px]">
+          <div className="flex items-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.025] px-2.5 py-2 font-mono text-[9px]">
             {ledgerVerified ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />}
             <span className="text-neutral-500">LEDGER</span>
             <span className={ledgerVerified ? 'text-emerald-300' : 'text-rose-300'}>{ledgerVerified ? 'VERIFIED' : 'ALERT'}</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.025] px-2.5 py-2 font-mono text-[9px]">
+          <div className="flex items-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.025] px-2.5 py-2 font-mono text-[9px]">
             <Activity className="h-3.5 w-3.5 text-cyan-300" />
             <span className="text-neutral-500">AGENTS</span>
             <span className="text-neutral-200">{status?.activeAgents ?? 0}</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.025] px-2.5 py-2 font-mono text-[9px]">
+          <div className="flex items-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.025] px-2.5 py-2 font-mono text-[9px]">
             <ShieldCheck className="h-3.5 w-3.5 text-amber-300" />
             <span className="text-neutral-500">QUEUE</span>
             <span className={(status?.pendingApprovals ?? 0) > 0 ? 'text-amber-300' : 'text-neutral-400'}>{status?.pendingApprovals ?? 0}</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.025] px-2.5 py-2 font-mono text-[9px]">
+          <div className="flex items-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.025] px-2.5 py-2 font-mono text-[9px]">
             <Layers3 className="h-3.5 w-3.5 text-neutral-500" />
             <span className="text-neutral-500">POLICY</span>
             <span className="text-emerald-300">{status?.policyStats.allow ?? 0}A</span>
@@ -100,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="hidden items-center rounded-lg border border-white/[0.07] bg-white/[0.025] p-0.5 md:flex">
+          <div className="hidden items-center rounded-md border border-white/[0.07] bg-white/[0.025] p-0.5 md:flex">
             {(['LIVE', 'SIMULATION', 'REPLAY', 'RECOVERY'] as RuntimeMode[]).map((mode) => {
               const active = activeMode === mode;
               const meta = modeMeta[mode];
@@ -108,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   key={mode}
                   onClick={() => onModeChange(mode)}
-                  className={`rounded-md border px-2.5 py-1.5 font-mono text-[9px] tracking-wider transition-all ${active ? meta.tone : 'border-transparent text-neutral-600 hover:text-neutral-300'}`}
+                  className={`rounded border px-2.5 py-1.5 font-mono text-[9px] font-medium tracking-wider transition-all ${active ? meta.tone : 'border-transparent text-neutral-600 hover:text-neutral-300'}`}
                 >
                   {meta.label}
                 </button>
@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.025] text-neutral-500 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-neutral-200"
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.025] text-neutral-500 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-neutral-200"
             title="Refresh system state"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-cyan-300' : ''}`} />
@@ -127,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={onOpenCommandPalette}
-            className="hidden h-9 items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.025] px-3 font-mono text-[9px] tracking-wide text-neutral-500 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-neutral-200 lg:flex"
+            className="hidden h-9 items-center gap-2 rounded-md border border-white/[0.07] bg-white/[0.025] px-3 font-mono text-[9px] font-medium tracking-wide text-neutral-500 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-neutral-200 lg:flex"
           >
             <Search className="h-3.5 w-3.5" />
             <span>COMMAND</span>
@@ -136,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={onOpenQuickLaunch}
-            className="flex h-9 items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-400 px-3.5 font-mono text-[10px] font-semibold tracking-wide text-[#041014] shadow-[0_0_22px_rgba(34,211,238,0.1)] transition hover:bg-cyan-300"
+            className="flex h-9 items-center gap-2 rounded-md border border-cyan-300/20 bg-cyan-400 px-3.5 font-mono text-[10px] font-semibold tracking-wide text-[#041014] shadow-[0_0_22px_rgba(34,211,238,0.1)] transition hover:bg-cyan-300"
           >
             <Play className="h-3.5 w-3.5 fill-current" />
             <span>LAUNCH</span>
