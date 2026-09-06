@@ -109,9 +109,9 @@ export function registerKnowledgeRoutes(app: Express) {
               content,
               source: `${transaction.sourceType}:${transaction.sourceName}${manifestItem.path ? `:${manifestItem.path}` : ''}`,
             });
-            return { manifestItem, content: result.content, processor: 'OX_ALPHA', model: result.model, provider: result.provider, usage: result.usage };
+            return { manifestItem, content: result.content };
           }))
-        : current.map(({ manifestItem, content }) => ({ manifestItem, content }));
+        : current;
 
       const requests = processed.map((item) => ({
         sourceType: transaction.sourceType,
@@ -127,7 +127,7 @@ export function registerKnowledgeRoutes(app: Express) {
           manifestHash: transaction.manifestHash,
           approvalId: transaction.approvalId,
           version: item.manifestItem.version,
-          ...(useOxAlpha ? { processor: 'OX_ALPHA', model: item.model, provider: item.provider, usage: item.usage } : {}),
+          ...(useOxAlpha ? { processor: 'OX_ALPHA' } : {}),
         },
       }));
 
@@ -141,7 +141,7 @@ export function registerKnowledgeRoutes(app: Express) {
         payload: { transactionId: completed.transactionId, approvalId: completed.approvalId, manifestHash: completed.manifestHash, items: completed.manifest.length, processor: useOxAlpha ? 'OX_ALPHA' : null },
       });
       return ok(res, { transaction: completed, results, processor: useOxAlpha ? 'OX_ALPHA' : null });
-    } catch (error) { return fail(res, error, 502); }
+    } catch (error) { return fail(res, error); }
   });
 
   app.get('/api/knowledge/sources', (_req: Request, res: Response) => ok(res, listKnowledgeSources()));
