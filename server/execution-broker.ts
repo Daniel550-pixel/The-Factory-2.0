@@ -1,0 +1,58 @@
+import { verifyExecutionAuthorization, type ExecutionAuthorization } from './security';
+import type { Proposal } from '../src/types';
+
+export interface CapabilityAdapter {
+  capability: string;
+  execute(proposal: Proposal): Promise<unknown>;
+}
+
+export interface BrokerExecutionResult {
+  executionId: string;
+  proposalId: string;
+  status: 'EXECUTED';
+  output: unknown;
+}
+
+/**
+ * The only component allowed to cross from a policy-approved proposal into a
+ * capability adapter. AI agents never receive adapters directly.
+ */
+export class ExecutionBroker {
+  private readonly adapters = new Map<string, CapabilityAdapter>();
+  private readonly consumedNonces = new Set<string>();
+
+  register(adapter: CapabilityAdapter): void {
+    if (this.adapters.has(adapter.capability)) {
+      throw new Error(`CAPABILITY_ALREADY_REGISTERED:${adapter.capability}`);
+    }
+    this.adapters.set(adapter.capability, adapter);
+  }
+
+  async execute(
+    authorization: ExecutionAuthorization,
+    proposal: Proposal,
+    secret: string
+  ): Promise<BrokerExecutionResult> {
+    if (!verifyExecutionAuthorization(authorization, secret)) {
+      throw new Error('EXECUTION_AUTHORIZATION_INVALID');
+    }
+    if (authorization.proposalId !== proposal.id) {
+      throw new Error('EXECUTION_PROPOSAL_MISMATCH');
+    }
+    if (this.consumedNonces.has(authorization.nonce)) {
+      throw new Error('EXECUTION_AUTHORIZATION_REPLAYED');
+    }
+
+    const adapter = this.adapters.get(authorization.capability);
+    if (!adapter) {
+      throw new Error(`CAPABILITY_UNAVAILABLE:${authorization.capability}`);
+    }
+    if (adapter.capability !== proposal.requestedAction) {
+      throw new Error('EXECUTION_CAPABILITY_MISMATCH');
+    }
+
+    this.consumedNonces.add(authorization.nonce);
+    const output = await adapter.execute(proposal);
+    return { executionId: authorization.executionId, proposalId: proposal.id, status: 'EXECUTED', output };
+  }
+}
