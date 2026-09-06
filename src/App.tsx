@@ -35,7 +35,6 @@ import type {
   PolicyDecision,
 } from './types';
 
-// Safe Fetch Helper to prevent unhandled HTML/JSON parsing exceptions
 async function safeFetchJson<T>(url: string, options?: RequestInit, fallbackValue?: T): Promise<T | null> {
   try {
     const res = await fetch(url, options);
@@ -59,8 +58,17 @@ async function safeFetchJson<T>(url: string, options?: RequestInit, fallbackValu
   }
 }
 
+const mobileNav = [
+  ['command-center', 'COMMAND'],
+  ['executions', 'EXECUTIONS'],
+  ['agents', 'AGENTS'],
+  ['approvals', 'APPROVALS'],
+  ['event-ledger', 'LEDGER'],
+  ['security', 'SECURITY'],
+  ['settings', 'SETTINGS'],
+] as const;
+
 export default function App() {
-  // Navigation & UI State
   const [currentTab, setCurrentTab] = useState<string>('command-center');
   const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -69,7 +77,6 @@ export default function App() {
   const [isQuickLaunchOpen, setIsQuickLaunchOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Kernel State
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [executions, setExecutions] = useState<ExecutionContext[]>([]);
   const [events, setEvents] = useState<CanonicalEvent[]>([]);
@@ -80,21 +87,10 @@ export default function App() {
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [products, setProducts] = useState<ProductIntegration[]>([]);
 
-  // Fetch all system state from API
   const fetchAllState = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const [
-        statusData,
-        execData,
-        eventData,
-        polData,
-        agentData,
-        toolData,
-        memData,
-        apprData,
-        prodData,
-      ] = await Promise.all([
+      const [statusData, execData, eventData, polData, agentData, toolData, memData, apprData, prodData] = await Promise.all([
         safeFetchJson<SystemStatus>('/api/status'),
         safeFetchJson<ExecutionContext[]>('/api/executions', undefined, []),
         safeFetchJson<CanonicalEvent[]>('/api/events', undefined, []),
@@ -108,9 +104,7 @@ export default function App() {
 
       if (statusData) {
         setStatus(statusData);
-        if (statusData.runtimeMode) {
-          setActiveMode(statusData.runtimeMode);
-        }
+        if (statusData.runtimeMode) setActiveMode(statusData.runtimeMode);
       }
       if (execData) setExecutions(execData);
       if (eventData) setEvents(eventData);
@@ -129,11 +123,10 @@ export default function App() {
 
   useEffect(() => {
     fetchAllState();
-    const interval = setInterval(fetchAllState, 12000); // Periodic live sync
+    const interval = setInterval(fetchAllState, 12000);
     return () => clearInterval(interval);
   }, [fetchAllState]);
 
-  // Actions
   const handleModeChange = async (newMode: RuntimeMode) => {
     setActiveMode(newMode);
     try {
@@ -165,11 +158,7 @@ export default function App() {
     }
   };
 
-  const handleResolveApproval = async (
-    id: string,
-    action: 'APPROVE' | 'DENY' | 'REQUEST_MORE_EVIDENCE',
-    notes: string
-  ) => {
+  const handleResolveApproval = async (id: string, action: 'APPROVE' | 'DENY' | 'REQUEST_MORE_EVIDENCE', notes: string) => {
     try {
       await safeFetchJson(`/api/approvals/${id}/resolve`, {
         method: 'POST',
@@ -188,18 +177,16 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ proposal: proposalData }),
     });
-    return (
-      data || {
-        decisionId: 'dec-fallback',
-        outcome: 'ALLOW',
-        reason: 'Default local evaluation passed.',
-        appliedPolicies: [],
-        riskScore: proposalData.riskScore || 20,
-        confidence: proposalData.confidence || 85,
-        evaluatedAt: new Date().toISOString(),
-        evaluator: 'DETERMINISTIC_GATE_KERNEL',
-      }
-    );
+    return data || {
+      decisionId: 'dec-fallback',
+      outcome: 'ALLOW',
+      reason: 'Default local evaluation passed.',
+      appliedPolicies: [],
+      riskScore: proposalData.riskScore || 20,
+      confidence: proposalData.confidence || 85,
+      evaluatedAt: new Date().toISOString(),
+      evaluator: 'DETERMINISTIC_GATE_KERNEL',
+    };
   };
 
   const handleVerifyLedger = async () => {
@@ -219,17 +206,15 @@ export default function App() {
   };
 
   const handleRunSimulation = async (scenario: any) => {
-    const data = await safeFetchJson<any>('/api/simulation', {
+    return await safeFetchJson<any>('/api/simulation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(scenario),
     });
-    return data;
   };
 
   return (
-    <div className="min-h-screen bg-[#06080a] text-neutral-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* 1. Universal Top Header */}
+    <div className="flex min-h-screen flex-col bg-[#06080a] text-neutral-100 selection:bg-cyan-500/30 selection:text-cyan-200">
       <Header
         status={status}
         activeMode={activeMode}
@@ -240,219 +225,67 @@ export default function App() {
         isRefreshing={isRefreshing}
       />
 
-      {/* 2. Main Content Split (Sidebar + Active View) */}
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          currentTab={currentTab}
-          onTabChange={setCurrentTab}
-          status={status}
-        />
+      <nav className="factory-mobile-nav md:hidden" aria-label="Primary navigation">
+        <div className="flex min-w-max items-center gap-1 px-3 py-2">
+          {mobileNav.map(([id, label]) => {
+            const active = currentTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setCurrentTab(id)}
+                className={`rounded-md border px-2.5 py-1.5 font-mono text-[8px] font-semibold tracking-[0.12em] transition ${
+                  active
+                    ? 'border-cyan-400/25 bg-cyan-400/[0.08] text-cyan-200'
+                    : 'border-transparent text-neutral-600 hover:border-white/[0.06] hover:bg-white/[0.025] hover:text-neutral-300'
+                }`}
+              >
+                {label}
+                {id === 'approvals' && (status?.pendingApprovals ?? 0) > 0 && (
+                  <span className="ml-1.5 text-amber-300">{status?.pendingApprovals}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
 
-        <main className="factory-vignette flex-1 overflow-y-auto bg-transparent px-5 py-5 md:px-6 md:py-6">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <Sidebar currentTab={currentTab} onTabChange={setCurrentTab} status={status} />
+
+        <main className="factory-vignette min-w-0 flex-1 overflow-y-auto bg-transparent px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6">
           <div className="mx-auto w-full max-w-[1440px]">
-            {currentTab === 'command-center' && (
-              <CommandCenterView
-                status={status}
-                executions={executions}
-                events={events}
-                agents={agents}
-                approvals={approvals}
-                activeMode={activeMode}
-                onNavigate={setCurrentTab}
-                onSelectExecution={(id) => {
-                  setSelectedExecutionId(id);
-                  setCurrentTab('executions');
-                }}
-                onSelectEvent={(evt) => {
-                  setSelectedEventId(evt.id);
-                  setCurrentTab('event-ledger');
-                }}
-                onOpenQuickLaunch={() => setIsQuickLaunchOpen(true)}
-              />
-            )}
+            {currentTab === 'command-center' && <CommandCenterView status={status} executions={executions} events={events} agents={agents} approvals={approvals} activeMode={activeMode} onNavigate={setCurrentTab} onSelectExecution={(id) => { setSelectedExecutionId(id); setCurrentTab('executions'); }} onSelectEvent={(evt) => { setSelectedEventId(evt.id); setCurrentTab('event-ledger'); }} onOpenQuickLaunch={() => setIsQuickLaunchOpen(true)} />}
 
-            {currentTab === 'executions' && (
-              <ExecutionsView
-                executions={executions}
-                selectedExecutionId={selectedExecutionId}
-                onSelectExecution={setSelectedExecutionId}
-                onRunPipeline={async (id) => {
-                  const target = executions.find((e) => e.executionId === id);
-                  if (target) {
-                    await handleExecuteTask(
-                      target.request.input,
-                      target.request.domain,
-                      target.request.domain
-                    );
-                  }
-                }}
-                onNavigateToLedger={(eventId) => {
-                  setSelectedEventId(eventId);
-                  setCurrentTab('event-ledger');
-                }}
-                onReplayExecution={(id) => {
-                  setSelectedExecutionId(id);
-                  setCurrentTab('replay-recovery');
-                }}
-              />
-            )}
+            {currentTab === 'executions' && <ExecutionsView executions={executions} selectedExecutionId={selectedExecutionId} onSelectExecution={setSelectedExecutionId} onRunPipeline={async (id) => {
+              const target = executions.find((e) => e.executionId === id);
+              if (target) await handleExecuteTask(target.request.input, target.agentId, target.request.domain);
+            }} onNavigateToLedger={(eventId) => { setSelectedEventId(eventId); setCurrentTab('event-ledger'); }} onReplayExecution={(id) => { setSelectedExecutionId(id); setCurrentTab('replay-recovery'); }} />}
 
-            {currentTab === 'event-ledger' && (
-              <EventLedgerView
-                events={events}
-                selectedEventId={selectedEventId}
-                onSelectEvent={(evt) => setSelectedEventId(evt.id)}
-                onVerifyIntegrity={handleVerifyLedger}
-                onSimulateTamper={handleSimulateTamper}
-                onRestoreLedger={handleRestoreLedger}
-                onNavigateToExecution={(execId) => {
-                  setSelectedExecutionId(execId);
-                  setCurrentTab('executions');
-                }}
-              />
-            )}
-
-            {currentTab === 'policy-gate' && (
-              <PolicyGateView
-                policies={policies}
-                onTestProposal={handleTestProposal}
-              />
-            )}
-
-            {currentTab === 'agents' && (
-              <AgentsView
-                agents={agents}
-                onDispatchAgent={(agentId, task, domain) =>
-                  handleExecuteTask(task, agentId, domain)
-                }
-              />
-            )}
-
-            {currentTab === 'approvals' && (
-              <ApprovalsView
-                approvals={approvals}
-                onResolveApproval={handleResolveApproval}
-                onNavigateToExecution={(id) => {
-                  setSelectedExecutionId(id);
-                  setCurrentTab('executions');
-                }}
-              />
-            )}
-
-            {currentTab === 'evidence-provenance' && (
-              <EvidenceProvenanceView
-                executions={executions}
-                onNavigateToExecution={(id) => {
-                  setSelectedExecutionId(id);
-                  setCurrentTab('executions');
-                }}
-              />
-            )}
-
-            {currentTab === 'arbitration' && (
-              <ArbitrationView agents={agents} />
-            )}
-
-            {currentTab === 'memory' && (
-              <MemoryView
-                memoryRecords={memoryRecords}
-                onNavigateToLedger={(eventId) => {
-                  setSelectedEventId(eventId);
-                  setCurrentTab('event-ledger');
-                }}
-              />
-            )}
-
-            {currentTab === 'context' && (
-              <MemoryView
-                memoryRecords={memoryRecords}
-                onNavigateToLedger={(eventId) => {
-                  setSelectedEventId(eventId);
-                  setCurrentTab('event-ledger');
-                }}
-              />
-            )}
-
-            {currentTab === 'replay-recovery' && (
-              <ReplayRecoveryView
-                executions={executions}
-                onReplayExecution={(id) => setSelectedExecutionId(id)}
-                onNavigateToExecution={(id) => {
-                  setSelectedExecutionId(id);
-                  setCurrentTab('executions');
-                }}
-              />
-            )}
-
-            {currentTab === 'simulation' && (
-              <SimulationView
-                agents={agents}
-                onRunSimulation={handleRunSimulation}
-              />
-            )}
-
-            {currentTab === 'evaluation' && (
-              <AgentsView
-                agents={agents}
-                onDispatchAgent={(agentId, task, domain) =>
-                  handleExecuteTask(task, agentId, domain)
-                }
-              />
-            )}
-
-            {currentTab === 'reasoning' && (
-              <ExecutionsView
-                executions={executions}
-                selectedExecutionId={selectedExecutionId}
-                onSelectExecution={setSelectedExecutionId}
-                onRunPipeline={async () => {}}
-                onNavigateToLedger={(eventId) => {
-                  setSelectedEventId(eventId);
-                  setCurrentTab('event-ledger');
-                }}
-                onReplayExecution={(id) => {
-                  setSelectedExecutionId(id);
-                  setCurrentTab('replay-recovery');
-                }}
-              />
-            )}
-
+            {currentTab === 'event-ledger' && <EventLedgerView events={events} selectedEventId={selectedEventId} onSelectEvent={(evt) => setSelectedEventId(evt.id)} onVerifyIntegrity={handleVerifyLedger} onSimulateTamper={handleSimulateTamper} onRestoreLedger={handleRestoreLedger} onNavigateToExecution={(execId) => { setSelectedExecutionId(execId); setCurrentTab('executions'); }} />}
+            {currentTab === 'policy-gate' && <PolicyGateView policies={policies} onTestProposal={handleTestProposal} />}
+            {currentTab === 'agents' && <AgentsView agents={agents} onDispatchAgent={(agentId, task, domain) => handleExecuteTask(task, agentId, domain)} />}
+            {currentTab === 'approvals' && <ApprovalsView approvals={approvals} onResolveApproval={handleResolveApproval} onNavigateToExecution={(id) => { setSelectedExecutionId(id); setCurrentTab('executions'); }} />}
+            {currentTab === 'evidence-provenance' && <EvidenceProvenanceView executions={executions} onNavigateToExecution={(id) => { setSelectedExecutionId(id); setCurrentTab('executions'); }} />}
+            {currentTab === 'arbitration' && <ArbitrationView agents={agents} />}
+            {currentTab === 'memory' && <MemoryView memoryRecords={memoryRecords} onNavigateToLedger={(eventId) => { setSelectedEventId(eventId); setCurrentTab('event-ledger'); }} />}
+            {currentTab === 'context' && <MemoryView memoryRecords={memoryRecords} onNavigateToLedger={(eventId) => { setSelectedEventId(eventId); setCurrentTab('event-ledger'); }} />}
+            {currentTab === 'replay-recovery' && <ReplayRecoveryView executions={executions} onReplayExecution={(id) => setSelectedExecutionId(id)} onNavigateToExecution={(id) => { setSelectedExecutionId(id); setCurrentTab('executions'); }} />}
+            {currentTab === 'simulation' && <SimulationView agents={agents} onRunSimulation={handleRunSimulation} />}
+            {currentTab === 'evaluation' && <AgentsView agents={agents} onDispatchAgent={(agentId, task, domain) => handleExecuteTask(task, agentId, domain)} />}
+            {currentTab === 'reasoning' && <ExecutionsView executions={executions} selectedExecutionId={selectedExecutionId} onSelectExecution={setSelectedExecutionId} onRunPipeline={async () => {}} onNavigateToLedger={(eventId) => { setSelectedEventId(eventId); setCurrentTab('event-ledger'); }} onReplayExecution={(id) => { setSelectedExecutionId(id); setCurrentTab('replay-recovery'); }} />}
             {currentTab === 'tools' && <OperationsView tools={tools} />}
             {currentTab === 'providers' && <OperationsView tools={tools} />}
             {currentTab === 'scheduler' && <OperationsView tools={tools} />}
             {currentTab === 'observability' && <OperationsView tools={tools} />}
-
-            {currentTab === 'security' && (
-              <SecurityView
-                onSimulateTamper={handleSimulateTamper}
-                onRestoreLedger={handleRestoreLedger}
-              />
-            )}
-
+            {currentTab === 'security' && <SecurityView onSimulateTamper={handleSimulateTamper} onRestoreLedger={handleRestoreLedger} />}
             {currentTab === 'products' && <ProductsView products={products} />}
-
-            {currentTab === 'settings' && (
-              <SettingsView status={status} onRefresh={fetchAllState} />
-            )}
+            {currentTab === 'settings' && <SettingsView status={status} onRefresh={fetchAllState} />}
           </div>
         </main>
       </div>
 
-      {/* 3. Global Command Palette (⌘K) */}
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        onNavigate={setCurrentTab}
-        onQuickRun={(input, domain) => handleExecuteTask(input, 'agent-supervisor', domain)}
-      />
-
-      {/* 4. Quick Execution Dispatch Modal */}
-      <QuickExecutionModal
-        isOpen={isQuickLaunchOpen}
-        onClose={() => setIsQuickLaunchOpen(false)}
-        onExecute={handleExecuteTask}
-        agents={agents}
-      />
+      <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} onNavigate={setCurrentTab} onQuickRun={(input, domain) => handleExecuteTask(input, 'agent-supervisor', domain)} />
+      <QuickExecutionModal isOpen={isQuickLaunchOpen} onClose={() => setIsQuickLaunchOpen(false)} onExecute={handleExecuteTask} agents={agents} />
     </div>
   );
 }
