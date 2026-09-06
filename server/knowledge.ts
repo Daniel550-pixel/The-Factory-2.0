@@ -24,6 +24,8 @@ export interface KnowledgeIngestRequest {
   documentId?: string;
   tags?: string[];
   metadata?: Record<string, unknown>;
+  memoryType?: MemoryType;
+  confidence?: number;
 }
 
 export interface KnowledgeIngestResult {
@@ -94,10 +96,11 @@ export function ingestKnowledge(
   const chunks = chunkMarkdown(request.content);
   const memoryIds: string[] = [];
   const baseTags = ['knowledge', request.sourceType.toLowerCase(), ...(request.tags || [])];
+  const type: MemoryType = request.memoryType || (request.sourceType === 'CLAUDE' ? 'DISTILLED_KNOWLEDGE' : 'RAW_OBSERVATION');
+  const confidence = request.confidence ?? (type === 'DISTILLED_KNOWLEDGE' ? 85 : 95);
 
   chunks.forEach((chunk, index) => {
     const memoryId = `kmem-${sha256(`${documentId}:${contentHash}:${index}`).slice(0, 20)}`;
-    const type: MemoryType = request.sourceType === 'CLAUDE' ? 'DISTILLED_KNOWLEDGE' : 'RAW_OBSERVATION';
     const record: MemoryRecord = {
       id: memoryId,
       type,
@@ -106,10 +109,10 @@ export function ingestKnowledge(
       provenance: {
         sourceId: documentId,
         traceId: `knowledge-ingest-${contentHash.slice(0, 12)}`,
-        chain: [request.sourceType, 'Document Ingestion', 'SHA-256 Content Identity', 'Markdown Chunking', type],
+        chain: [request.sourceType, ...(request.metadata?.processor ? [`Processor:${String(request.metadata.processor)}`] : []), 'Document Ingestion', 'SHA-256 Content Identity', 'Markdown Chunking', type],
       },
       timestamp: new Date().toISOString(),
-      confidence: request.sourceType === 'CLAUDE' ? 85 : 95,
+      confidence,
       relevance: 100,
       tags: [...baseTags, `document:${documentId}`, `chunk:${index + 1}/${chunks.length}`],
     };
