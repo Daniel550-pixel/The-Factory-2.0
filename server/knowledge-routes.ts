@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from 'express';
 import { globalStore } from './store';
 import { ingestKnowledgeAtomic, getKnowledgeStats, listKnowledgeSources } from './knowledge';
+import { distillWithOxAlpha } from './ox-alpha';
 import {
   assertApprovedManifest,
   approveKnowledgeTransaction,
@@ -89,29 +90,46 @@ export function registerKnowledgeRoutes(app: Express) {
     } catch (error) { return fail(res, error); }
   });
 
-  app.post('/api/knowledge/transactions/:id/ingest', (req: Request, res: Response) => {
+  app.post('/api/knowledge/transactions/:id/ingest', async (req: Request, res: Response) => {
     try {
       const transaction = getKnowledgeTransaction(req.params.id);
       const items = Array.isArray(req.body?.items) ? req.body.items : [];
+      const useOxAlpha = req.body?.processor === 'OX_ALPHA';
       assertApprovedManifest(req.params.id, items);
 
-      const requests = transaction.manifest.map((manifestItem) => {
-        const current = items.find((item: { itemId: string }) => item.itemId === manifestItem.itemId);
-        if (!current) throw new Error(`Approved item missing at ingestion: ${manifestItem.itemId}`);
-        return {
-          sourceType: transaction.sourceType,
-          sourceName: transaction.sourceName,
-          path: manifestItem.path,
-          content: current.content,
-          documentId: manifestItem.itemId,
-          metadata: {
-            transactionId: transaction.transactionId,
-            manifestHash: transaction.manifestHash,
-            approvalId: transaction.approvalId,
-            version: manifestItem.version,
-          },
-        };
+      const current = transaction.manifest.map((manifestItem) => {
+        const item = items.find((candidate: { itemId: string }) => candidate.itemId === manifestItem.itemId);
+        if (!item) throw new Error(`Approved item missing at ingestion: ${manifestItem.itemId}`);
+        return { manifestItem, content: String(item.content || '') };
       });
+
+      const processed = useOxAlpha
+        ? await Promise.all(current.map(async ({ manifestItem, content }) => {
+            const result = await distillWithOxAlpha({
+              content,
+              source: `${transaction.sourceType}:${transaction.sourceName}${manifestItem.path ? `:${manifestItem.path}` : ''}`,
+            });
+            return { manifestItem, content: result.content, processor: 'OX_ALPHA', model: result.model, provider: result.provider, usage: result.usage };
+          }))
+        : current.map(({ manifestItem, content }) => ({ manifestItem, content }));
+
+      const requests = processed.map((item) => ({
+        sourceType: transaction.sourceType,
+        sourceName: transaction.sourceName,
+        path: item.manifestItem.path,
+        content: item.content,
+        documentId: item.manifestItem.itemId,
+        memoryType: useOxAlpha ? 'DISTILLED_KNOWLEDGE' as const : undefined,
+        confidence: useOxAlpha ? 85 : undefined,
+        tags: useOxAlpha ? ['ox-alpha'] : undefined,
+        metadata: {
+          transactionId: transaction.transactionId,
+          manifestHash: transaction.manifestHash,
+          approvalId: transaction.approvalId,
+          version: item.manifestItem.version,
+          ...(useOxAlpha ? { processor: 'OX_ALPHA', model: item.model, provider: item.provider, usage: item.usage } : {}),
+        },
+      }));
 
       const results = ingestKnowledgeAtomic(requests, globalStore.memory, (event) => globalStore.appendEvent(event));
       const completed = markKnowledgeTransactionIngested(req.params.id);
@@ -119,11 +137,11 @@ export function registerKnowledgeRoutes(app: Express) {
         id: `EVT-${Date.now()}-KNOWLEDGE-TRANSACTION-INGESTED`, name: 'KnowledgeTransactionIngested', type: 'MEMORY_COMMITTED', timestamp: new Date().toISOString(),
         actor: { id: 'act-knowledge-ingest', name: 'Factory Knowledge Ingestion Kernel', role: 'SYSTEM' }, executionId: 'EX-KNOWLEDGE-TRANSACTION',
         traceId: completed.transactionId, causation: 'KNOWLEDGE_APPROVAL_VERIFIED', correlation: completed.sourceId,
-        provenance: { source: 'Factory Knowledge Transaction Kernel', confidence: 100, chain: ['ApprovedManifest', 'DriftCheck', 'KnowledgeIngestion', 'TransactionComplete'] },
-        payload: { transactionId: completed.transactionId, approvalId: completed.approvalId, manifestHash: completed.manifestHash, items: completed.manifest.length },
+        provenance: { source: 'Factory Knowledge Transaction Kernel', confidence: 100, chain: ['ApprovedManifest', 'DriftCheck', ...(useOxAlpha ? ['OxAlphaDistillation'] : []), 'KnowledgeIngestion', 'TransactionComplete'] },
+        payload: { transactionId: completed.transactionId, approvalId: completed.approvalId, manifestHash: completed.manifestHash, items: completed.manifest.length, processor: useOxAlpha ? 'OX_ALPHA' : null },
       });
-      return ok(res, { transaction: completed, results });
-    } catch (error) { return fail(res, error); }
+      return ok(res, { transaction: completed, results, processor: useOxAlpha ? 'OX_ALPHA' : null });
+    } catch (error) { return fail(res, error, 502); }
   });
 
   app.get('/api/knowledge/sources', (_req: Request, res: Response) => ok(res, listKnowledgeSources()));
