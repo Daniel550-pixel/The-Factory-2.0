@@ -1,22 +1,7 @@
 import React from 'react';
 import {
-  Activity,
-  ArrowRight,
-  Brain,
-  CheckCircle2,
-  ChevronRight,
-  CircleDot,
-  Clock3,
-  Cpu,
-  Database,
-  FileCheck2,
-  GitBranch,
-  LockKeyhole,
-  Play,
-  Radio,
-  ShieldCheck,
-  Sparkles,
-  Workflow,
+  Activity, ArrowRight, Brain, CheckCircle2, ChevronRight, CircleDot, Clock3, Cpu,
+  Database, FileCheck2, GitBranch, LockKeyhole, Play, Radio, ShieldCheck, Sparkles, Workflow,
 } from 'lucide-react';
 import type { SystemStatus, ExecutionContext, CanonicalEvent, Agent, ApprovalRequest, RuntimeMode } from '../types';
 
@@ -41,24 +26,13 @@ const toneForStatus = (status: ExecutionContext['status']) => {
 };
 
 const formatTime = (value: string) => {
-  try {
-    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  } catch {
-    return '—';
-  }
+  try { return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+  catch { return '—'; }
 };
 
 export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
-  status,
-  executions,
-  events,
-  agents,
-  approvals,
-  activeMode,
-  onNavigate,
-  onSelectExecution,
-  onSelectEvent,
-  onOpenQuickLaunch,
+  status, executions, events, agents, approvals, activeMode, onNavigate,
+  onSelectExecution, onSelectEvent, onOpenQuickLaunch,
 }) => {
   const pendingApprovals = approvals.filter((item) => item.status === 'PENDING');
   const recentExecutions = executions.slice(0, 5);
@@ -67,15 +41,10 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
   const runtimeState = status?.runtimeStatus ?? 'OPERATIONAL';
 
   const pipeline = [
-    ['01', 'REQUEST', 'Observation'],
-    ['02', 'CONTEXT', 'Assembly'],
-    ['03', 'REASONING', 'Specialist'],
-    ['04', 'PROPOSAL', 'Action plan'],
-    ['05', 'EVIDENCE', 'Provenance'],
-    ['06', 'VERIFY', 'Integrity'],
-    ['07', 'POLICY', 'Authorization'],
-    ['08', 'EXECUTE', 'Authorized'],
-    ['09', 'LEDGER', 'Canonical'],
+    ['01', 'REQUEST', 'Intent'], ['02', 'CONTEXT', 'State'], ['03', 'AGENT', 'Reasoning'],
+    ['04', 'PROPOSAL', 'Plan'], ['05', 'EVIDENCE', 'Provenance'], ['06', 'POLICY', 'Governance'],
+    ['07', 'AUTH', 'Permission'], ['08', 'EXECUTE', 'Action'], ['09', 'LEDGER', 'Canonical'],
+    ['10', 'MEMORY', 'Persist'],
   ];
 
   return (
@@ -99,9 +68,9 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
         </div>
       </div>
 
-      <section className="factory-panel-raised relative overflow-hidden rounded-2xl p-5">
-        <div className="factory-grid pointer-events-none absolute inset-0 opacity-30" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.09),transparent_32%),radial-gradient(circle_at_85%_100%,rgba(139,92,246,0.06),transparent_30%)]" />
+      <section className="factory-spatial relative overflow-hidden rounded-2xl border border-white/[0.09] p-5 xl:p-6">
+        <div className="factory-grid-fine pointer-events-none absolute inset-0 opacity-40" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(34,211,238,0.09),transparent_25%),radial-gradient(circle_at_78%_65%,rgba(139,92,246,0.08),transparent_24%)]" />
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-xl">
             <div className="mb-3 inline-flex items-center gap-2 rounded-md border border-cyan-400/15 bg-cyan-400/[0.04] px-2.5 py-1.5 font-mono text-[9px] tracking-[0.16em] text-cyan-200"><LockKeyhole className="h-3.5 w-3.5" /> FUNDAMENTAL INVARIANT</div>
@@ -114,22 +83,25 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
               ['AGENTS', String(status?.activeAgents ?? activeAgents.length), 'text-cyan-300'],
               ['EXECUTIONS', String(status?.activeExecutions ?? 0), 'text-violet-300'],
               ['APPROVALS', String(status?.pendingApprovals ?? pendingApprovals.length), 'text-amber-300'],
-            ].map(([label, value, tone]) => (
-              <div key={label} className="factory-panel rounded-xl px-3 py-2.5"><div className="font-mono text-[8px] tracking-[0.18em] text-neutral-600">{label}</div><div className={`mt-1 font-mono text-sm font-semibold ${tone}`}>{value}</div></div>
-            ))}
+            ].map(([label, value, tone]) => <div key={label} className="factory-panel rounded-xl px-3 py-2.5"><div className="font-mono text-[8px] tracking-[0.18em] text-neutral-600">{label}</div><div className={`mt-1 font-mono text-sm font-semibold ${tone}`}>{value}</div></div>)}
           </div>
         </div>
 
         <div className="relative mt-6 overflow-x-auto border-t border-white/[0.06] pt-5">
-          <div className="flex min-w-[930px] items-center">
+          <div className="flex min-w-[1120px] items-center">
             {pipeline.map(([num, title, sub], index) => (
               <React.Fragment key={num}>
-                <div className={`group min-w-[92px] flex-1 rounded-xl border px-2.5 py-2.5 text-center transition ${index === 6 ? 'border-cyan-400/25 bg-cyan-400/[0.06] shadow-[0_0_20px_rgba(34,211,238,0.05)]' : 'border-white/[0.06] bg-black/20 hover:border-white/[0.12]'}`}>
-                  <div className="font-mono text-[8px] text-neutral-700">{num}</div><div className="mt-1 text-[9px] font-semibold tracking-wider text-neutral-300">{title}</div><div className="mt-1 text-[8px] text-neutral-600">{sub}</div>
+                <div className={`factory-node factory-signal min-w-[96px] flex-1 rounded-xl px-2.5 py-3 text-center ${index === 6 ? 'factory-node-active' : ''}`}>
+                  <div className="font-mono text-[8px] text-neutral-700">{num}</div>
+                  <div className={`mt-1 text-[9px] font-semibold tracking-wider ${index === 6 ? 'text-cyan-200' : 'text-neutral-300'}`}>{title}</div>
+                  <div className="mt-1 text-[8px] text-neutral-600">{sub}</div>
                 </div>
                 {index < pipeline.length - 1 && <ArrowRight className="mx-1.5 h-3 w-3 shrink-0 text-neutral-700" />}
               </React.Fragment>
             ))}
+          </div>
+          <div className="mt-3 flex items-center justify-between font-mono text-[7px] tracking-[0.18em] text-neutral-700">
+            <span>INTENT / SIGNAL</span><span>GOVERNED TRANSITION</span><span>CANONICAL STATE / PERSISTENCE</span>
           </div>
         </div>
       </section>
@@ -140,10 +112,7 @@ export const CommandCenterView: React.FC<CommandCenterViewProps> = ({
           { label: 'PROVENANCE', value: `${status?.provenanceIntegrityPct ?? 0}%`, sub: 'integrity coverage', icon: GitBranch, action: 'evidence-provenance', tone: 'text-violet-300' },
           { label: 'POLICY', value: `${status?.policyStats.allow ?? 0} / ${status?.policyStats.deny ?? 0}`, sub: 'allow / deny', icon: ShieldCheck, action: 'policy-gate', tone: 'text-emerald-300' },
           { label: 'MEMORY', value: status?.totalMemoryRecords ?? 0, sub: 'linked records', icon: Brain, action: 'memory', tone: 'text-fuchsia-300' },
-        ].map((metric) => {
-          const Icon = metric.icon;
-          return <button key={metric.label} onClick={() => onNavigate(metric.action)} className="factory-panel group p-3.5 text-left transition hover:border-white/[0.14] hover:bg-white/[0.035]"><div className="flex items-center justify-between"><span className="font-mono text-[8px] tracking-[0.18em] text-neutral-600">{metric.label}</span><Icon className={`h-3.5 w-3.5 ${metric.tone}`} /></div><div className="mt-2 font-mono text-lg font-semibold text-neutral-100">{metric.value}</div><div className="mt-0.5 text-[9px] text-neutral-600">{metric.sub}</div></button>;
-        })}
+        ].map((metric) => { const Icon = metric.icon; return <button key={metric.label} onClick={() => onNavigate(metric.action)} className="factory-panel group p-3.5 text-left transition hover:border-white/[0.14] hover:bg-white/[0.035]"><div className="flex items-center justify-between"><span className="font-mono text-[8px] tracking-[0.18em] text-neutral-600">{metric.label}</span><Icon className={`h-3.5 w-3.5 ${metric.tone}`} /></div><div className="mt-2 font-mono text-lg font-semibold text-neutral-100">{metric.value}</div><div className="mt-0.5 text-[9px] text-neutral-600">{metric.sub}</div></button>; })}
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_0.85fr]">
