@@ -1,0 +1,6 @@
+{
+  "name": "The Factory",
+  "description": "AI-native execution and governance runtime control plane maintaining the invariant AI DECIDES ≠ AI EXECUTES",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
