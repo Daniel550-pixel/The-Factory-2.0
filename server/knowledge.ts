@@ -181,6 +181,44 @@ export function ingestKnowledge(
   return { source, documentId, contentHash, chunksCreated: chunks.length, memoryIds };
 }
 
+export function ingestKnowledgeAtomic(
+  requests: KnowledgeIngestRequest[],
+  memory: Map<string, MemoryRecord>,
+  appendEvent: (event: any) => any,
+): KnowledgeIngestResult[] {
+  if (requests.length === 0) throw new Error('At least one knowledge item is required');
+
+  const memorySnapshot = new Map(memory);
+  const sourceSnapshot = new Map(
+    Array.from(sources.entries()).map(([id, source]) => [id, { ...source }]),
+  );
+  const documentHashSnapshot = new Map(documentHashes);
+  const eventSnapshotLength = (() => {
+    const target = appendEvent as ((event: any) => any) & { __eventStore?: any[] };
+    return Array.isArray(target.__eventStore) ? target.__eventStore.length : null;
+  })();
+
+  try {
+    return requests.map((request) => ingestKnowledge(request, memory, appendEvent));
+  } catch (error) {
+    memory.clear();
+    for (const [id, record] of memorySnapshot) memory.set(id, record);
+
+    sources.clear();
+    for (const [id, source] of sourceSnapshot) sources.set(id, source);
+
+    documentHashes.clear();
+    for (const [id, hash] of documentHashSnapshot) documentHashes.set(id, hash);
+
+    if (eventSnapshotLength !== null) {
+      const target = appendEvent as ((event: any) => any) & { __eventStore?: any[] };
+      target.__eventStore!.length = eventSnapshotLength;
+    }
+
+    throw error;
+  }
+}
+
 export function listKnowledgeSources(): KnowledgeSource[] {
   return Array.from(sources.values()).sort((a, b) =>
     (b.lastIngested || '').localeCompare(a.lastIngested || '')
