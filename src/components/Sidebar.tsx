@@ -82,9 +82,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, statu
   ];
 
   return (
-    <aside className="flex h-[calc(100vh-62px)] w-[248px] shrink-0 flex-col border-r border-white/[0.06] bg-[#080a0c]/90 backdrop-blur-xl select-none">
+    <aside className="flex h-[calc(100vh-64px)] w-[248px] shrink-0 flex-col border-r border-white/[0.06] bg-[#080a0c]/90 backdrop-blur-xl select-none">
       <div className="border-b border-white/[0.045] px-3 py-2.5">
-        <div className="flex items-center justify-between rounded-lg border border-cyan-400/[0.08] bg-cyan-400/[0.018] px-2.5 py-2">
+        <div className="factory-panel flex items-center justify-between rounded-md px-2.5 py-2">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.8)]" />
             <span className="font-mono text-[8px] font-semibold tracking-[0.18em] text-cyan-200/70">CONTROL PLANE</span>
@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, statu
                   <button
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
-                    className={`group relative flex w-full items-center justify-between rounded-lg border px-2.5 py-[8px] text-left transition-all duration-150 ${
+                    className={`group relative flex w-full items-center justify-between rounded-md border px-2.5 py-2 text-left transition-all duration-150 ${
                       active
                         ? 'border-cyan-400/20 bg-cyan-400/[0.075] text-cyan-100 shadow-[inset_2px_0_0_rgba(103,232,249,0.9),0_8px_20px_rgba(0,0,0,0.08)]'
                         : 'border-transparent text-neutral-500 hover:border-white/[0.05] hover:bg-white/[0.025] hover:text-neutral-200'
@@ -119,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, statu
                       <span className="truncate text-[11px] font-medium tracking-wide">{item.label}</span>
                     </span>
                     {item.badge !== undefined && item.badge !== null && item.badge > 0 && (
-                      <span className={`ml-2 rounded-md border px-1.5 py-0.5 font-mono text-[8px] leading-none ${item.badgeTone === 'amber' ? 'border-amber-400/15 bg-amber-400/10 text-amber-300' : active ? 'border-cyan-400/15 bg-cyan-400/10 text-cyan-200' : 'border-white/[0.05] bg-white/[0.035] text-neutral-600'}`}>
+                      <span className={`ml-2 rounded border px-1.5 py-0.5 font-mono text-[8px] leading-none ${item.badgeTone === 'amber' ? 'border-amber-400/15 bg-amber-400/10 text-amber-300' : active ? 'border-cyan-400/15 bg-cyan-400/10 text-cyan-200' : 'border-white/[0.05] bg-white/[0.035] text-neutral-600'}`}>
                         {item.badge}
                       </span>
                     )}
@@ -132,7 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange, statu
       </div>
 
       <div className="border-t border-white/[0.06] p-2.5">
-        <div className="factory-panel rounded-xl p-3">
+        <div className="factory-panel rounded-md p-3">
           <div className="mb-2.5 flex items-center justify-between">
             <span className="font-mono text-[8px] font-semibold tracking-[0.18em] text-neutral-500">KERNEL DAEMON</span>
             <span className="flex items-center gap-1.5 font-mono text-[8px] tracking-wider text-emerald-300">
