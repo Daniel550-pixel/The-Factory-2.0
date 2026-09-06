@@ -12,4 +12,7 @@ express.application.all = function patchedAll(path: string, ...handlers: any[]) 
   return originalAll.call(this, path, ...handlers);
 };
 
-await import('./server.ts');
+import('./server.ts').catch((error) => {
+  console.error('[THE FACTORY] Failed to start server:', error);
+  process.exitCode = 1;
+});
