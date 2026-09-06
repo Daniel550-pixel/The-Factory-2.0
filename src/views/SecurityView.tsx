@@ -1,137 +1,24 @@
 import React from 'react';
-import {
-  Lock,
-  ShieldCheck,
-  ShieldAlert,
-  Key,
-  Users,
-  CheckCircle2,
-  AlertTriangle,
-  Database,
-  FileCheck,
-} from 'lucide-react';
+import { Lock, ShieldCheck, ShieldAlert, Users, Database, FileCheck } from 'lucide-react';
 
-interface SecurityViewProps {
-  onSimulateTamper: () => Promise<void>;
-  onRestoreLedger: () => Promise<void>;
-}
+interface SecurityViewProps { onSimulateTamper: () => Promise<void>; onRestoreLedger: () => Promise<void>; }
 
-export const SecurityView: React.FC<SecurityViewProps> = ({
-  onSimulateTamper,
-  onRestoreLedger,
-}) => {
+export const SecurityView: React.FC<SecurityViewProps> = ({ onSimulateTamper, onRestoreLedger }) => {
   const identities = [
-    {
-      id: 'actor-system-supervisor',
-      name: 'Factory Supervisor Agent',
-      type: 'AGENT',
-      privilege: 'ORCHESTRATOR',
-      authMethod: 'Cryptographic Token + Internal Kernel Secret',
-      status: 'AUTHENTICATED',
-    },
-    {
-      id: 'actor-human-operator',
-      name: 'Operations Command Center Admin',
-      type: 'HUMAN',
-      privilege: 'DUAL_CUSTODY_SIGNER',
-      authMethod: 'Hardware Token / WebAuthn MFA',
-      status: 'AUTHENTICATED',
-    },
-    {
-      id: 'actor-scada-service',
-      name: 'Dubai South SCADA Telemetry Gateway',
-      type: 'SERVICE',
-      privilege: 'TELEMETRY_INGEST_READ_ONLY',
-      authMethod: 'Mutual TLS (mTLS) + HMAC Signature',
-      status: 'AUTHENTICATED',
-    },
+    { id:'actor-system-supervisor', name:'Factory Supervisor Agent', type:'AGENT', privilege:'ORCHESTRATOR', authMethod:'Cryptographic Token + Internal Kernel Secret', status:'AUTHENTICATED' },
+    { id:'actor-human-operator', name:'Operations Command Center Admin', type:'HUMAN', privilege:'DUAL_CUSTODY_SIGNER', authMethod:'Hardware Token / WebAuthn MFA', status:'AUTHENTICATED' },
+    { id:'actor-scada-service', name:'Dubai South SCADA Telemetry Gateway', type:'SERVICE', privilege:'TELEMETRY_INGEST_READ_ONLY', authMethod:'Mutual TLS (mTLS) + HMAC Signature', status:'AUTHENTICATED' },
   ];
-
   const permissions = [
-    { resource: 'LEDGER_COMMITS', allowed: 'Kernel Daemon Only (Signed SHA-256)' },
-    { resource: 'POLICY_GATE_MODIFICATION', allowed: 'Human Dual-Custody Admin Only' },
-    { resource: 'FINANCIAL_DISBURSEMENTS_OVER_50K', allowed: 'Escalated to Human Queue (Mandatory)' },
-    { resource: 'INFRASTRUCTURE_CONTROL_WRITES', allowed: 'Verified Agent Proposal + Policy Gate' },
+    { resource:'LEDGER_COMMITS', allowed:'Kernel Daemon Only (Signed SHA-256)' },
+    { resource:'POLICY_GATE_MODIFICATION', allowed:'Human Dual-Custody Admin Only' },
+    { resource:'FINANCIAL_DISBURSEMENTS_OVER_50K', allowed:'Escalated to Human Queue (Mandatory)' },
+    { resource:'INFRASTRUCTURE_CONTROL_WRITES', allowed:'Verified Agent Proposal + Policy Gate' },
   ];
-
-  return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="border-b border-neutral-800 pb-4">
-        <h1 className="text-lg font-bold font-mono text-neutral-100 uppercase tracking-wide flex items-center gap-2">
-          <Lock className="h-5 w-5 text-cyan-400" />
-          <span>Zero-Trust Security & Identity Infrastructure</span>
-        </h1>
-        <p className="text-xs text-neutral-400 font-mono mt-0.5">
-          Zero-trust architecture where every actor, agent, service, and proposal must be cryptographically authenticated and deterministically authorized.
-        </p>
-      </div>
-
-      {/* Security Invariant Guarantee */}
-      <div className="p-4 rounded-xl border border-cyan-800/60 bg-cyan-950/20 font-mono text-xs space-y-2">
-        <div className="flex items-center gap-2 text-cyan-300 font-bold">
-          <ShieldCheck className="h-4 w-4 text-cyan-400" />
-          <span>INVARIANT GUARANTEE: NO PROMPT INJECTION OR AGENT HALLUCINATION CAN BYPASS THE KERNEL</span>
-        </div>
-        <p className="text-neutral-300 font-sans leading-relaxed">
-          The Factory architecture decouples AI reasoning from deterministic execution. Even if an adversarial prompt causes an AI model to attempt a malicious command, the deterministic Policy Gate intercepts the proposal and applies strict mathematical rules.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Identities */}
-        <div className="lg:col-span-6 space-y-3 font-mono text-xs">
-          <span className="font-bold text-neutral-200 uppercase">
-            Zero-Trust Identity Registry ({identities.length})
-          </span>
-
-          <div className="space-y-2.5">
-            {identities.map((id) => (
-              <div
-                key={id.id}
-                className="p-4 rounded-xl border border-neutral-800 bg-neutral-900/50 space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-neutral-100">{id.name}</span>
-                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                    {id.status}
-                  </span>
-                </div>
-
-                <div className="text-[11px] text-cyan-400">{id.privilege}</div>
-
-                <div className="text-[11px] text-neutral-400 pt-1 border-t border-neutral-900">
-                  Auth Method: <span className="text-neutral-300">{id.authMethod}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right Column: Deterministic Permissions Matrix */}
-        <div className="lg:col-span-6 space-y-3 font-mono text-xs">
-          <span className="font-bold text-neutral-200 uppercase">
-            Deterministic Capabilities Matrix
-          </span>
-
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4 space-y-3">
-            {permissions.map((p, i) => (
-              <div
-                key={i}
-                className="p-3 rounded-lg bg-neutral-950 border border-neutral-800 space-y-1"
-              >
-                <div className="flex items-center justify-between text-neutral-200 font-bold">
-                  <span>{p.resource}</span>
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                </div>
-                <div className="text-[11px] text-neutral-400 font-sans">
-                  Enforcement: {p.allowed}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="factory-enter factory-grid space-y-5 pb-12">
+    <header className="factory-panel factory-scan relative overflow-hidden p-5"><div className="relative flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between"><div><div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-400/80"><span className="h-1.5 w-1.5 rounded-full bg-cyan-400 factory-signal"/>Security / Trust Boundary</div><h1 className="flex items-center gap-2 font-mono text-xl font-bold uppercase text-neutral-100"><Lock className="h-5 w-5 text-cyan-400"/>Security Control Plane</h1><p className="mt-1 max-w-3xl font-mono text-xs leading-relaxed text-neutral-400">Every actor, proposal and write crosses an explicit identity, authorization and integrity boundary.</p></div><div className="rounded border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 font-mono text-[10px] text-emerald-300">TRUST STATE · VERIFIED</div></div></header>
+    <section className="factory-panel-raised factory-grid p-4"><div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300"><ShieldCheck className="h-4 w-4 text-cyan-400"/>Kernel Security Invariant</div><p className="mt-2 max-w-4xl text-xs leading-relaxed text-neutral-300">AI reasoning is not an execution authority. Prompt injection, hallucinated commands and compromised proposals remain subject to deterministic policy, authorization and ledger controls.</p></section>
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-12"><section className="lg:col-span-6"><div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-500"><Users className="h-3.5 w-3.5"/>Identity Registry · {identities.length}</div><div className="space-y-2">{identities.map(id=><div key={id.id} className="factory-panel p-4"><div className="flex items-center justify-between gap-3"><div className="font-mono text-xs font-bold text-neutral-100">{id.name}</div><span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] text-emerald-400">{id.status}</span></div><div className="mt-2 font-mono text-[10px] text-cyan-400">{id.privilege}</div><div className="mt-2 border-t border-neutral-900 pt-2 font-mono text-[10px] text-neutral-500">AUTH · <span className="text-neutral-300">{id.authMethod}</span></div></div>)}</div></section><section className="lg:col-span-6"><div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-500"><FileCheck className="h-3.5 w-3.5"/>Capability Matrix</div><div className="factory-panel space-y-2 p-3">{permissions.map((p,i)=><div key={i} className="rounded-lg border border-neutral-800 bg-neutral-950/70 p-3"><div className="flex items-center justify-between gap-2 font-mono text-[10px] font-bold text-neutral-200"><span>{p.resource}</span><ShieldCheck className="h-3.5 w-3.5 text-emerald-400"/></div><div className="mt-1 text-[10px] text-neutral-500">ENFORCEMENT · <span className="text-neutral-300">{p.allowed}</span></div></div>)}</div></section></div>
+    <section className="factory-panel p-4"><div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-500"><Database className="h-3.5 w-3.5"/>Integrity Operations</div><div className="flex flex-wrap gap-2"><button onClick={()=>void onSimulateTamper()} className="flex items-center gap-2 rounded border border-rose-500/30 bg-rose-500/5 px-3 py-2 font-mono text-[10px] font-bold text-rose-300"><ShieldAlert className="h-3.5 w-3.5"/>SIMULATE TAMPER</button><button onClick={()=>void onRestoreLedger()} className="flex items-center gap-2 rounded border border-cyan-500/30 bg-cyan-500/5 px-3 py-2 font-mono text-[10px] font-bold text-cyan-300"><Database className="h-3.5 w-3.5"/>RESTORE VERIFIED LEDGER</button></div></section>
+  </div>;
 };
