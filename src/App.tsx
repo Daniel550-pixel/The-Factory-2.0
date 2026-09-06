@@ -228,7 +228,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div className="min-h-screen bg-[#06080a] text-neutral-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
       {/* 1. Universal Top Header */}
       <Header
         status={status}
@@ -248,8 +248,8 @@ export default function App() {
           status={status}
         />
 
-        <main className="flex-1 overflow-y-auto p-6 bg-neutral-950/40">
-          <div className="max-w-7xl mx-auto">
+        <main className="factory-vignette flex-1 overflow-y-auto bg-transparent px-5 py-5 md:px-6 md:py-6">
+          <div className="mx-auto w-full max-w-[1440px]">
             {currentTab === 'command-center' && (
               <CommandCenterView
                 status={status}
@@ -450,8 +450,8 @@ export default function App() {
       <QuickExecutionModal
         isOpen={isQuickLaunchOpen}
         onClose={() => setIsQuickLaunchOpen(false)}
-        agents={agents}
         onExecute={handleExecuteTask}
+        agents={agents}
       />
     </div>
   );
