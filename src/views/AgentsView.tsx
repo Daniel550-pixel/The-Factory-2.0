@@ -59,9 +59,8 @@ export const AgentsView: React.FC<AgentsViewProps> = ({ agents, onDispatchAgent 
   };
 
   return (
-    <div className="space-y-5 pb-12 font-mono text-xs">
-      {/* Registry header */}
-      <header className="panel-grid rounded-xl border border-neutral-800 bg-neutral-950/70 p-5">
+    <div className="factory-enter factory-grid space-y-5 pb-12 font-mono text-xs">
+      <header className="factory-panel factory-scan rounded-xl p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-cyan-400">
@@ -86,7 +85,7 @@ export const AgentsView: React.FC<AgentsViewProps> = ({ agents, onDispatchAgent 
             ['AVG PERFORMANCE', `${avgPerformance}%`, 'text-emerald-300', Gauge],
             ['DEGRADED', degradedCount, degradedCount ? 'text-red-300' : 'text-neutral-300', Shield],
           ].map(([label, value, tone, Icon]) => (
-            <div key={String(label)} className="rounded-lg border border-neutral-800 bg-neutral-900/55 px-3 py-2.5">
+            <div key={String(label)} className="factory-panel-raised rounded-lg px-3 py-2.5">
               <div className="flex items-center justify-between text-[9px] uppercase tracking-wider text-neutral-500">
                 {label as string}
                 <Icon className="h-3.5 w-3.5 text-neutral-600" />
@@ -98,8 +97,7 @@ export const AgentsView: React.FC<AgentsViewProps> = ({ agents, onDispatchAgent 
       </header>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-        {/* Agent fabric */}
-        <section className="xl:col-span-7 rounded-xl border border-neutral-800 bg-neutral-950/55 p-4">
+        <section className="factory-panel xl:col-span-7 rounded-xl p-4">
           <div className="mb-3 flex items-center justify-between border-b border-neutral-800 pb-3">
             <div>
               <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Agent Fabric</div>
@@ -118,9 +116,9 @@ export const AgentsView: React.FC<AgentsViewProps> = ({ agents, onDispatchAgent 
                   key={agent.id}
                   type="button"
                   onClick={() => setSelectedAgentId(agent.id)}
-                  className={`panel-grid group rounded-lg border p-3 text-left transition ${
+                  className={`group rounded-lg border p-3 text-left transition ${
                     selected
-                      ? 'border-cyan-500/60 bg-cyan-500/[0.06] ring-1 ring-cyan-500/20'
+                      ? 'factory-node-active border-cyan-500/60 bg-cyan-500/[0.06] ring-1 ring-cyan-500/20'
                       : 'border-neutral-800 bg-neutral-900/35 hover:border-neutral-700 hover:bg-neutral-900/70'
                   }`}
                 >
@@ -150,11 +148,10 @@ export const AgentsView: React.FC<AgentsViewProps> = ({ agents, onDispatchAgent 
           </div>
         </section>
 
-        {/* Inspector */}
         <aside className="xl:col-span-5 space-y-4">
           {selectedAgent ? (
             <>
-              <section className="rounded-xl border border-neutral-800 bg-neutral-950/65 p-4">
+              <section className="factory-panel-raised rounded-xl p-4">
                 <div className="flex items-start justify-between border-b border-neutral-800 pb-3">
                   <div>
                     <div className="text-[9px] tracking-wider text-neutral-600">AGENT ID / {selectedAgent.id}</div>
@@ -182,7 +179,7 @@ export const AgentsView: React.FC<AgentsViewProps> = ({ agents, onDispatchAgent 
                     <span>Runtime confidence</span><strong className="text-neutral-200">{selectedAgent.confidence}%</strong>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-neutral-900">
-                    <div className="h-full rounded-full bg-cyan-500" style={{ width: `${selectedAgent.confidence}%` }} />
+                    <div className="factory-data-line h-full rounded-full" style={{ width: `${selectedAgent.confidence}%` }} />
                   </div>
                 </div>
 
@@ -202,7 +199,7 @@ export const AgentsView: React.FC<AgentsViewProps> = ({ agents, onDispatchAgent 
                 </div>
               </section>
 
-              <section className="rounded-xl border border-neutral-800 bg-neutral-950/65 p-4">
+              <section className="factory-panel rounded-xl p-4">
                 <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
                   <Zap className="h-4 w-4 text-cyan-400" />
                   <div>
@@ -229,12 +226,12 @@ export const AgentsView: React.FC<AgentsViewProps> = ({ agents, onDispatchAgent 
               </section>
             </>
           ) : (
-            <div className="rounded-xl border border-neutral-800 bg-neutral-950/65 p-12 text-center text-neutral-600">NO AGENTS REGISTERED</div>
+            <div className="factory-panel rounded-xl p-12 text-center text-neutral-600">NO AGENTS REGISTERED</div>
           )}
         </aside>
       </div>
 
-      <footer className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-neutral-800 bg-neutral-950/50 px-4 py-3 text-[9px] text-neutral-600">
+      <footer className="factory-panel flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg px-4 py-3 text-[9px] text-neutral-600">
         <span className="flex items-center gap-1.5"><LockKeyhole className="h-3 w-3" /> PERMISSIONS ENFORCED</span>
         <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> POLICY GATE REQUIRED</span>
         <span className="flex items-center gap-1.5"><Sparkles className="h-3 w-3 text-cyan-500" /> AI PROPOSALS ARE NON-AUTHORITATIVE</span>
