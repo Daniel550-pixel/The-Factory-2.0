@@ -1,0 +1,10 @@
+# Default ownership for the repository.
+# Replace with organization/team ownership when a dedicated maintainer team exists.
+* @Daniel550-pixel
+
+# Security-sensitive runtime surfaces
+/server/ @Daniel550-pixel
+/server.ts @Daniel550-pixel
+/server-entry.ts @Daniel550-pixel
+SECURITY.md @Daniel550-pixel
+.github/ @Daniel550-pixel
