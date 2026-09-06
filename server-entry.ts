@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { registerKnowledgeRoutes } from './server/knowledge-routes';
 import { registerKnowledgeAdapterRoutes } from './server/knowledge-adapter-routes';
