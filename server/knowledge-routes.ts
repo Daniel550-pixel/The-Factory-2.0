@@ -94,7 +94,9 @@ export function registerKnowledgeRoutes(app: Express) {
     try {
       const transaction = getKnowledgeTransaction(req.params.id);
       const items = Array.isArray(req.body?.items) ? req.body.items : [];
-      const useOxAlpha = req.body?.processor === 'OX_ALPHA';
+      // Ox Alpha is the default knowledge processor for governed adapter ingestion.
+      // Explicit processor=RAW preserves the unprocessed ingestion path for testing/manual use.
+      const useOxAlpha = req.body?.processor !== 'RAW';
       assertApprovedManifest(req.params.id, items);
 
       const current = transaction.manifest.map((manifestItem) => {
@@ -109,9 +111,9 @@ export function registerKnowledgeRoutes(app: Express) {
               content,
               source: `${transaction.sourceType}:${transaction.sourceName}${manifestItem.path ? `:${manifestItem.path}` : ''}`,
             });
-            return { manifestItem, content: result.content };
+            return { manifestItem, content: result.content, model: result.model, provider: result.provider, usage: result.usage };
           }))
-        : current;
+        : current.map(({ manifestItem, content }) => ({ manifestItem, content }));
 
       const requests = processed.map((item) => ({
         sourceType: transaction.sourceType,
@@ -127,7 +129,12 @@ export function registerKnowledgeRoutes(app: Express) {
           manifestHash: transaction.manifestHash,
           approvalId: transaction.approvalId,
           version: item.manifestItem.version,
-          ...(useOxAlpha ? { processor: 'OX_ALPHA' } : {}),
+          ...(useOxAlpha ? {
+            processor: 'OX_ALPHA',
+            model: 'model' in item ? item.model : undefined,
+            provider: 'provider' in item ? item.provider : undefined,
+            usage: 'usage' in item ? item.usage : undefined,
+          } : {}),
         },
       }));
 
