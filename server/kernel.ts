@@ -1,16 +1,10 @@
 import crypto from 'crypto';
 import type {
   CanonicalEvent,
-  ExecutionContext,
   Proposal,
   Evidence,
   PolicyRule,
   PolicyDecision,
-  ExecutionResult,
-  MemoryRecord,
-  ApprovalRequest,
-  Agent,
-  RuntimeMode,
 } from '../src/types';
 
 export function calculateEventHash(
@@ -27,8 +21,10 @@ export function calculateEventHash(
     agentId: event.agentId,
     executionId: event.executionId,
     traceId: event.traceId,
+    parentTraceId: event.parentTraceId,
     causation: event.causation,
     correlation: event.correlation,
+    provenance: event.provenance,
     payload: event.payload,
   });
   return crypto.createHash('sha256').update(content).digest('hex');
@@ -41,14 +37,13 @@ export class PolicyGateEngine {
     activeRules: PolicyRule[],
     actorRole: string
   ): PolicyDecision {
-    const decisionId = `pol-dec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    void actorRole;
+    const decisionId = `pol-dec-${crypto.randomUUID()}`;
     const appliedPolicies: PolicyDecision['appliedPolicies'] = [];
 
-    // Deterministic Rule 1: High risk or critical action requires human escalation
     let outcome: 'ALLOW' | 'DENY' | 'ESCALATE' = 'ALLOW';
     let reason = 'All policy invariant checks passed deterministically.';
 
-    // Check minimum evidence confidence
     const avgConfidence =
       evidence.length > 0
         ? evidence.reduce((acc, e) => acc + e.confidence, 0) / evidence.length
@@ -80,7 +75,7 @@ export class PolicyGateEngine {
         appliedPolicies.push({
           policyId: rule.id,
           policyName: rule.name,
-          matched: true,
+          matched,
           effect: ruleEffect,
         });
 
@@ -95,7 +90,6 @@ export class PolicyGateEngine {
       }
     }
 
-    // Explicit invariant: Financial allocations > $100,000 or security reconfigurations always ESCALATE
     if (
       proposal.type === 'SECURITY_RECONFIGURATION' ||
       (proposal.type === 'FINANCIAL_ALLOCATION' && (proposal.parameters?.amount || 0) > 100000)
