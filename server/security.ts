@@ -16,6 +16,9 @@ const ROLE_CAPABILITIES: Record<FactoryRole, readonly string[]> = {
   SYSTEM: ['execution:request', 'execution:execute'],
 };
 
+const MAX_AUTHORIZATION_TTL_MS = 30_000;
+const MAX_CLOCK_SKEW_MS = 5_000;
+
 export function hasCapability(principal: AuthenticatedPrincipal, capability: string): boolean {
   return principal.roles.some((role) => ROLE_CAPABILITIES[role]?.includes(capability));
 }
@@ -54,6 +57,13 @@ export function issueExecutionAuthorization(
   secret: string
 ): ExecutionAuthorization {
   assertCapability(principal, 'execution:execute');
+  if (!secret) throw new Error('EXECUTION_AUTH_SECRET_REQUIRED');
+
+  const ttlMs = input.ttlMs ?? MAX_AUTHORIZATION_TTL_MS;
+  if (!Number.isFinite(ttlMs) || ttlMs <= 0 || ttlMs > MAX_AUTHORIZATION_TTL_MS) {
+    throw new Error('EXECUTION_AUTHORIZATION_TTL_INVALID');
+  }
+
   const issuedAt = new Date();
   const token: Omit<ExecutionAuthorization, 'signature'> = {
     executionId: input.executionId,
@@ -61,7 +71,7 @@ export function issueExecutionAuthorization(
     capability: input.capability,
     subject: principal.subject,
     issuedAt: issuedAt.toISOString(),
-    expiresAt: new Date(issuedAt.getTime() + (input.ttlMs ?? 30_000)).toISOString(),
+    expiresAt: new Date(issuedAt.getTime() + ttlMs).toISOString(),
     nonce: crypto.randomUUID(),
   };
   const signature = crypto.createHmac('sha256', secret).update(signingPayload(token)).digest('hex');
@@ -69,7 +79,16 @@ export function issueExecutionAuthorization(
 }
 
 export function verifyExecutionAuthorization(token: ExecutionAuthorization, secret: string, now = Date.now()): boolean {
-  if (Date.parse(token.expiresAt) <= now) return false;
+  if (!secret || !token || typeof token.signature !== 'string' || token.signature.length !== 64) return false;
+
+  const issuedAt = Date.parse(token.issuedAt);
+  const expiresAt = Date.parse(token.expiresAt);
+  if (!Number.isFinite(issuedAt) || !Number.isFinite(expiresAt)) return false;
+  if (issuedAt > now + MAX_CLOCK_SKEW_MS) return false;
+  if (expiresAt <= now || expiresAt <= issuedAt) return false;
+  if (expiresAt - issuedAt > MAX_AUTHORIZATION_TTL_MS) return false;
+  if (!token.executionId || !token.proposalId || !token.capability || !token.subject || !token.nonce) return false;
+
   const expected = crypto.createHmac('sha256', secret).update(signingPayload({
     executionId: token.executionId,
     proposalId: token.proposalId,
@@ -79,5 +98,8 @@ export function verifyExecutionAuthorization(token: ExecutionAuthorization, secr
     expiresAt: token.expiresAt,
     nonce: token.nonce,
   })).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(token.signature), Buffer.from(expected));
+
+  const actual = Buffer.from(token.signature, 'hex');
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  return actual.length === expectedBuffer.length && crypto.timingSafeEqual(actual, expectedBuffer);
 }
