@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { CommandPalette } from './components/CommandPalette';
 import { QuickExecutionModal } from './components/QuickExecutionModal';
+import { ExecutionInspector } from './components/ExecutionInspector';
 import { CommandCenterView } from './views/CommandCenterView';
 import { ExecutionsView } from './views/ExecutionsView';
 import { EventLedgerView } from './views/EventLedgerView';
@@ -101,6 +102,8 @@ export default function App() {
   const handleRestoreLedger = async () => { await safeFetchJson('/api/events/restore', { method: 'POST' }); fetchAllState(); };
   const handleRunSimulation = async (scenario: any) => await safeFetchJson<any>('/api/simulation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(scenario) });
 
+  const selectedExecution = selectedExecutionId ? executions.find((item) => item.executionId === selectedExecutionId) ?? null : null;
+
   return (
     <div className="flex min-h-screen flex-col bg-[#06080a] text-neutral-100 selection:bg-cyan-500/30 selection:text-cyan-200">
       <Header status={status} activeMode={activeMode} onModeChange={handleModeChange} onOpenQuickLaunch={() => setIsQuickLaunchOpen(true)} onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} onRefresh={fetchAllState} isRefreshing={isRefreshing} />
@@ -120,7 +123,10 @@ export default function App() {
         <Sidebar currentTab={currentTab} onTabChange={setCurrentTab} status={status} />
         <main className="factory-vignette min-w-0 flex-1 overflow-y-auto bg-transparent px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6">
           <div className="mx-auto w-full max-w-[1440px]">
-            {currentTab === 'command-center' && <CommandCenterView status={status} executions={executions} events={events} agents={agents} approvals={approvals} activeMode={activeMode} onNavigate={setCurrentTab} onSelectExecution={(id) => { setSelectedExecutionId(id); setCurrentTab('executions'); }} onSelectEvent={(evt) => { setSelectedEventId(evt.id); setCurrentTab('event-ledger'); }} onOpenQuickLaunch={() => setIsQuickLaunchOpen(true)} />}
+            {currentTab === 'command-center' && <>
+              <CommandCenterView status={status} executions={executions} events={events} agents={agents} approvals={approvals} activeMode={activeMode} onNavigate={setCurrentTab} onSelectExecution={(id) => setSelectedExecutionId(id)} onSelectEvent={(evt) => { setSelectedEventId(evt.id); setCurrentTab('event-ledger'); }} onOpenQuickLaunch={() => setIsQuickLaunchOpen(true)} />
+              <ExecutionInspector execution={selectedExecution} onNavigate={setCurrentTab} />
+            </>}
             {currentTab === 'executions' && <ExecutionsView executions={executions} selectedExecutionId={selectedExecutionId} onSelectExecution={setSelectedExecutionId} onRunPipeline={async (id) => { const target = executions.find((e) => e.executionId === id); if (target) await handleExecuteTask(target.request.input, target.agentId, target.request.domain); }} onNavigateToLedger={(eventId) => { setSelectedEventId(eventId); setCurrentTab('event-ledger'); }} onReplayExecution={(id) => { setSelectedExecutionId(id); setCurrentTab('replay-recovery'); }} />}
             {currentTab === 'event-ledger' && <EventLedgerView events={events} selectedEventId={selectedEventId} onSelectEvent={(evt) => setSelectedEventId(evt.id)} onVerifyIntegrity={handleVerifyLedger} onSimulateTamper={handleSimulateTamper} onRestoreLedger={handleRestoreLedger} onNavigateToExecution={(execId) => { setSelectedExecutionId(execId); setCurrentTab('executions'); }} />}
             {currentTab === 'policy-gate' && <PolicyGateView policies={policies} onTestProposal={handleTestProposal} />}
