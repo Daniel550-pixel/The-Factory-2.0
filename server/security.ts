@@ -39,6 +39,7 @@ export function assertCapability(principal: AuthenticatedPrincipal, capability: 
 export interface ExecutionAuthorization {
   executionId: string;
   proposalId: string;
+  policyDecisionId: string;
   capability: string;
   subject: string;
   issuedAt: string;
@@ -53,12 +54,13 @@ function signingPayload(token: Omit<ExecutionAuthorization, 'signature'>): strin
 
 export function issueExecutionAuthorization(
   principal: AuthenticatedPrincipal,
-  input: { executionId: string; proposalId: string; capability: string; ttlMs?: number },
+  input: { executionId: string; proposalId: string; policyDecisionId: string; capability: string; ttlMs?: number },
   secret: string,
   ttlMsOverride?: number
 ): ExecutionAuthorization {
   assertCapability(principal, 'execution:execute');
   if (!secret) throw new Error('EXECUTION_AUTH_SECRET_REQUIRED');
+  if (!input.policyDecisionId) throw new Error('EXECUTION_POLICY_DECISION_REQUIRED');
 
   const ttlMs = ttlMsOverride ?? input.ttlMs ?? MAX_AUTHORIZATION_TTL_MS;
   if (!Number.isFinite(ttlMs) || ttlMs <= 0 || ttlMs > MAX_AUTHORIZATION_TTL_MS) {
@@ -69,6 +71,7 @@ export function issueExecutionAuthorization(
   const token: Omit<ExecutionAuthorization, 'signature'> = {
     executionId: input.executionId,
     proposalId: input.proposalId,
+    policyDecisionId: input.policyDecisionId,
     capability: input.capability,
     subject: principal.subject,
     issuedAt: issuedAt.toISOString(),
@@ -88,11 +91,12 @@ export function verifyExecutionAuthorization(token: ExecutionAuthorization, secr
   if (issuedAt > now + MAX_CLOCK_SKEW_MS) return false;
   if (expiresAt <= now || expiresAt <= issuedAt) return false;
   if (expiresAt - issuedAt > MAX_AUTHORIZATION_TTL_MS) return false;
-  if (!token.executionId || !token.proposalId || !token.capability || !token.subject || !token.nonce) return false;
+  if (!token.executionId || !token.proposalId || !token.policyDecisionId || !token.capability || !token.subject || !token.nonce) return false;
 
   const expected = crypto.createHmac('sha256', secret).update(signingPayload({
     executionId: token.executionId,
     proposalId: token.proposalId,
+    policyDecisionId: token.policyDecisionId,
     capability: token.capability,
     subject: token.subject,
     issuedAt: token.issuedAt,
