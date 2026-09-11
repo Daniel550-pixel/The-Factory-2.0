@@ -1,4 +1,5 @@
 import { verifyExecutionAuthorization, type ExecutionAuthorization } from './security';
+import { DurableExecutionReplayStore } from './execution-replay-store';
 import type { PolicyDecision, Proposal } from '../src/types';
 
 export interface CapabilityAdapter {
@@ -19,7 +20,10 @@ export interface BrokerExecutionResult {
  */
 export class ExecutionBroker {
   private readonly adapters = new Map<string, CapabilityAdapter>();
-  private readonly consumedNonces = new Set<string>();
+
+  constructor(
+    private readonly replayStore = new DurableExecutionReplayStore()
+  ) {}
 
   register(adapter: CapabilityAdapter): void {
     if (this.adapters.has(adapter.capability)) {
@@ -46,9 +50,6 @@ export class ExecutionBroker {
     if (policyDecision.outcome !== 'ALLOW') {
       throw new Error(`EXECUTION_POLICY_NOT_ALLOW:${policyDecision.outcome}`);
     }
-    if (this.consumedNonces.has(authorization.nonce)) {
-      throw new Error('EXECUTION_AUTHORIZATION_REPLAYED');
-    }
 
     const adapter = this.adapters.get(authorization.capability);
     if (!adapter) {
@@ -58,10 +59,19 @@ export class ExecutionBroker {
       throw new Error('EXECUTION_CAPABILITY_MISMATCH');
     }
 
-    // Consume before crossing the execution boundary. If an adapter fails,
-    // the authorization cannot be retried because the side-effect state is
-    // unknown and replaying could duplicate an external operation.
-    this.consumedNonces.add(authorization.nonce);
+    const claimed = await this.replayStore.claim({
+      nonce: authorization.nonce,
+      executionId: authorization.executionId,
+      proposalId: proposal.id,
+      claimedAt: new Date().toISOString(),
+    });
+    if (!claimed) {
+      throw new Error('EXECUTION_AUTHORIZATION_REPLAYED');
+    }
+
+    // The durable claim is committed before crossing the execution boundary.
+    // If the adapter fails, the authorization remains consumed because the
+    // external side-effect state is unknown and replaying could duplicate it.
     const output = await adapter.execute(proposal);
     return { executionId: authorization.executionId, proposalId: proposal.id, status: 'EXECUTED', output };
   }
