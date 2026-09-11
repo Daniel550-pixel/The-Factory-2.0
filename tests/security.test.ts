@@ -80,26 +80,30 @@ describe('execution authorization boundary', () => {
       .rejects.toThrow('EXECUTION_POLICY_DECISION_MISMATCH');
   });
 
-  it('prevents an authorization token from being replayed', async () => {
-    const broker = new ExecutionBroker();
+  it('prevents an authorization token from being replayed across broker instances', async () => {
+    const brokerA = new ExecutionBroker();
+    const brokerB = new ExecutionBroker();
     let calls = 0;
-    broker.register({
+    const adapter = {
       capability: proposal.requestedAction,
       async execute() {
         calls += 1;
         return { ok: true };
       },
-    });
+    };
+    brokerA.register(adapter);
+    brokerB.register(adapter);
 
     const token = issueExecutionAuthorization(system, {
-      executionId: 'exec-1',
+      executionId: 'exec-durable-replay',
       proposalId: proposal.id,
       policyDecisionId: allowDecision.decisionId,
       capability: proposal.requestedAction,
     }, 'test-secret');
 
-    await broker.execute(token, proposal, allowDecision, 'test-secret');
-    await expect(broker.execute(token, proposal, allowDecision, 'test-secret')).rejects.toThrow('EXECUTION_AUTHORIZATION_REPLAYED');
+    await brokerA.execute(token, proposal, allowDecision, 'test-secret');
+    await expect(brokerB.execute(token, proposal, allowDecision, 'test-secret'))
+      .rejects.toThrow('EXECUTION_AUTHORIZATION_REPLAYED');
     expect(calls).toBe(1);
   });
 
