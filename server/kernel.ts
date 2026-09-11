@@ -7,6 +7,13 @@ import type {
   PolicyDecision,
 } from '../src/types';
 
+const ACTOR_RISK_CEILING: Record<string, number> = {
+  OPERATOR: 40,
+  SECURITY_ADMIN: 100,
+  COMPLIANCE_OFFICER: 100,
+  SYSTEM: 100,
+};
+
 export function calculateEventHash(
   previousHash: string,
   event: Omit<CanonicalEvent, 'previousEventHash' | 'currentEventHash' | 'integrityStatus'>
@@ -37,12 +44,25 @@ export class PolicyGateEngine {
     activeRules: PolicyRule[],
     actorRole: string
   ): PolicyDecision {
-    void actorRole;
     const decisionId = `pol-dec-${crypto.randomUUID()}`;
     const appliedPolicies: PolicyDecision['appliedPolicies'] = [];
 
     let outcome: 'ALLOW' | 'DENY' | 'ESCALATE' = 'ALLOW';
     let reason = 'All policy invariant checks passed deterministically.';
+
+    const actorRiskCeiling = ACTOR_RISK_CEILING[actorRole];
+    if (actorRiskCeiling === undefined) {
+      return {
+        decisionId,
+        outcome: 'DENY',
+        reason: `Unrecognized actor role [${actorRole}]. Policy evaluation cannot authorize an unknown principal role.`,
+        appliedPolicies,
+        riskScore: proposal.riskScore,
+        confidence: Math.round(proposal.confidence),
+        evaluatedAt: new Date().toISOString(),
+        evaluator: 'DETERMINISTIC_GATE_KERNEL',
+      };
+    }
 
     const avgConfidence =
       evidence.length > 0
@@ -88,6 +108,11 @@ export class PolicyGateEngine {
           reason = `Triggered human escalation on rule [${rule.name}]: Requires human review due to risk level or confidence verification.`;
         }
       }
+    }
+
+    if (proposal.riskScore > actorRiskCeiling && outcome !== 'DENY') {
+      outcome = 'ESCALATE';
+      reason = `Actor role [${actorRole}] cannot approve risk score ${proposal.riskScore} above its deterministic ceiling of ${actorRiskCeiling}. Higher-authority human review is required.`;
     }
 
     if (
