@@ -95,4 +95,55 @@ describe('Factory kernel', () => {
 
     expect(decision.outcome).toBe('DENY');
   });
+
+  it('escalates when an operator exceeds the operator risk ceiling even if policy allows', () => {
+    const proposal: Proposal = {
+      id: 'proposal-3',
+      type: 'TOOL_INVOCATION',
+      summary: 'Invoke high-risk tool',
+      targetResource: 'approved-tool',
+      requestedAction: 'invoke',
+      parameters: {},
+      expectedImpact: 'controlled external side effect',
+      riskScore: 60,
+      confidence: 95,
+      proposingAgentId: 'agent-1',
+    };
+
+    const rules: PolicyRule[] = [{
+      id: 'policy-2',
+      name: 'Permissive test rule',
+      description: 'Allows the proposal so actor authority must still be enforced.',
+      capabilityTarget: 'TOOL_INVOCATION',
+      maxRiskScore: 100,
+      minConfidence: 80,
+      requiresHumanEscalation: false,
+      action: 'ALLOW',
+    }];
+
+    const decision = PolicyGateEngine.evaluate(proposal, [], rules, 'OPERATOR');
+
+    expect(decision.outcome).toBe('ESCALATE');
+    expect(decision.reason).toContain('cannot approve risk score 60');
+  });
+
+  it('denies policy evaluation for an unknown actor role', () => {
+    const proposal: Proposal = {
+      id: 'proposal-4',
+      type: 'STATE_MUTATION',
+      summary: 'Mutate state',
+      targetResource: 'test-state',
+      requestedAction: 'state:mutate',
+      parameters: {},
+      expectedImpact: 'test mutation',
+      riskScore: 1,
+      confidence: 100,
+      proposingAgentId: 'agent-1',
+    };
+
+    const decision = PolicyGateEngine.evaluate(proposal, [], [], 'UNKNOWN_ROLE');
+
+    expect(decision.outcome).toBe('DENY');
+    expect(decision.reason).toContain('Unrecognized actor role');
+  });
 });
