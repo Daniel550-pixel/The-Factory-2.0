@@ -51,7 +51,15 @@ export class DurableEventLedger {
       }
       const { currentEventHash: _ignored, integrityStatus: _status, ...unsigned } = event;
       const expected = calculateEventHash(previousHash, unsigned);
-      if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(event.currentEventHash))) {
+      if (
+        typeof event.currentEventHash !== 'string' ||
+        !/^[0-9a-f]{64}$/i.test(event.currentEventHash)
+      ) {
+        return { valid: false, eventCount: events.length, lastSequence: index, failureIndex: index, reason: 'EVENT_HASH_MISMATCH' };
+      }
+      const actual = Buffer.from(event.currentEventHash, 'hex');
+      const expectedBuffer = Buffer.from(expected, 'hex');
+      if (actual.length !== expectedBuffer.length || !crypto.timingSafeEqual(actual, expectedBuffer)) {
         return { valid: false, eventCount: events.length, lastSequence: index, failureIndex: index, reason: 'EVENT_HASH_MISMATCH' };
       }
       previousHash = event.currentEventHash;
