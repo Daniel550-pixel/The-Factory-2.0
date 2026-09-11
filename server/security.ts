@@ -54,12 +54,13 @@ function signingPayload(token: Omit<ExecutionAuthorization, 'signature'>): strin
 export function issueExecutionAuthorization(
   principal: AuthenticatedPrincipal,
   input: { executionId: string; proposalId: string; capability: string; ttlMs?: number },
-  secret: string
+  secret: string,
+  ttlMsOverride?: number
 ): ExecutionAuthorization {
   assertCapability(principal, 'execution:execute');
   if (!secret) throw new Error('EXECUTION_AUTH_SECRET_REQUIRED');
 
-  const ttlMs = input.ttlMs ?? MAX_AUTHORIZATION_TTL_MS;
+  const ttlMs = ttlMsOverride ?? input.ttlMs ?? MAX_AUTHORIZATION_TTL_MS;
   if (!Number.isFinite(ttlMs) || ttlMs <= 0 || ttlMs > MAX_AUTHORIZATION_TTL_MS) {
     throw new Error('EXECUTION_AUTHORIZATION_TTL_INVALID');
   }
