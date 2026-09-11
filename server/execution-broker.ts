@@ -40,10 +40,27 @@ export class ExecutionBroker {
     const lifecycle = events.filter((event) => event.executionId === executionId && event.payload.receipt);
     if (lifecycle.length === 0) return undefined;
     const latest = lifecycle.at(-1)!;
-    return {
-      ...(latest.payload.receipt as ExecutionReceipt),
-      ledgerEventIds: lifecycle.map((event) => event.id),
-    };
+    return { ...(latest.payload.receipt as ExecutionReceipt), ledgerEventIds: lifecycle.map((event) => event.id) };
+  }
+
+  /** Marks executions left in CLAIMED/RUNNING after a process interruption as UNKNOWN. */
+  async recoverInterruptedExecutions(): Promise<ExecutionReceipt[]> {
+    const events = await this.ledger.read();
+    const latestByExecution = new Map<string, typeof events[number]>();
+    for (const event of events) if (event.payload.receipt) latestByExecution.set(event.executionId, event);
+
+    const recovered: ExecutionReceipt[] = [];
+    for (const event of latestByExecution.values()) {
+      const receipt = event.payload.receipt as ExecutionReceipt;
+      if (receipt.status !== 'CLAIMED' && receipt.status !== 'RUNNING') continue;
+      const next = transitionExecutionReceipt(receipt, 'UNKNOWN');
+      recovered.push(await this.record(next, 'EXECUTION_FAILED', {
+        id: receipt.proposalId,
+        type: 'STATE_MUTATION', summary: 'Recovered interrupted execution', targetResource: 'recovery', requestedAction: receipt.capability,
+        parameters: {}, expectedImpact: 'No automatic replay.', riskScore: 0, confidence: 100, proposingAgentId: event.agentId ?? 'unknown',
+      }, receipt.subject, receipt.policyDecisionId, { recovery: true }));
+    }
+    return recovered;
   }
 
   async execute(
@@ -62,8 +79,10 @@ export class ExecutionBroker {
     if (adapter.capability !== proposal.requestedAction) throw new Error('EXECUTION_CAPABILITY_MISMATCH');
 
     const existing = await this.getReceipt(authorization.executionId);
+    if (existing?.authorizationNonce === authorization.nonce) throw new Error('EXECUTION_AUTHORIZATION_REPLAYED');
     if (existing?.status === 'SUCCEEDED') throw new Error('EXECUTION_ID_ALREADY_COMPLETED');
     if (existing?.status === 'RUNNING' || existing?.status === 'CLAIMED') throw new Error('EXECUTION_ID_ALREADY_ACTIVE');
+    if (existing?.status === 'UNKNOWN') throw new Error('EXECUTION_ID_REQUIRES_RECOVERY');
 
     let receipt = createExecutionReceipt({
       executionId: authorization.executionId,
@@ -108,15 +127,11 @@ export class ExecutionBroker {
     proposal: Proposal,
     actorId: string,
     causation: string,
+    payload: Record<string, unknown> = {},
   ): Promise<ExecutionReceipt> {
     const event = createExecutionEvent({
-      type,
-      receipt,
-      actorId,
-      proposalId: proposal.id,
-      agentId: proposal.proposingAgentId,
-      causation,
-      sequence: receipt.ledgerEventIds.length,
+      type, receipt, actorId, proposalId: proposal.id, agentId: proposal.proposingAgentId,
+      causation, sequence: receipt.ledgerEventIds.length, payload,
     });
     const committed = await this.ledger.append(event);
     return { ...receipt, ledgerEventIds: [...receipt.ledgerEventIds, committed.id] };
