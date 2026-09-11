@@ -23,10 +23,7 @@ export class ExecutionBroker {
   private readonly adapters = new Map<string, CapabilityAdapter>();
   private readonly ledger: DurableEventLedger;
 
-  constructor(
-    private readonly replayStore = new DurableExecutionReplayStore(),
-    ledger?: DurableEventLedger,
-  ) {
+  constructor(private readonly replayStore = new DurableExecutionReplayStore(), ledger?: DurableEventLedger) {
     this.ledger = ledger ?? new DurableEventLedger(path.resolve('.runtime', 'execution-ledger.jsonl'));
   }
 
@@ -54,21 +51,16 @@ export class ExecutionBroker {
       const receipt = event.payload.receipt as ExecutionReceipt;
       if (receipt.status !== 'CLAIMED' && receipt.status !== 'RUNNING') continue;
       const next = transitionExecutionReceipt(receipt, 'UNKNOWN');
-      recovered.push(await this.record(next, 'EXECUTION_FAILED', {
-        id: receipt.proposalId,
-        type: 'STATE_MUTATION', summary: 'Recovered interrupted execution', targetResource: 'recovery', requestedAction: receipt.capability,
-        parameters: {}, expectedImpact: 'No automatic replay.', riskScore: 0, confidence: 100, proposingAgentId: event.agentId ?? 'unknown',
+      recovered.push(await this.record(next, 'RECOVERY_ACTION', {
+        id: receipt.proposalId, type: 'STATE_MUTATION', summary: 'Recovered interrupted execution', targetResource: 'recovery',
+        requestedAction: receipt.capability, parameters: {}, expectedImpact: 'No automatic replay.', riskScore: 0, confidence: 100,
+        proposingAgentId: event.agentId ?? 'unknown',
       }, receipt.subject, receipt.policyDecisionId, { recovery: true }));
     }
     return recovered;
   }
 
-  async execute(
-    authorization: ExecutionAuthorization,
-    proposal: Proposal,
-    policyDecision: PolicyDecision,
-    secret: string,
-  ): Promise<BrokerExecutionResult> {
+  async execute(authorization: ExecutionAuthorization, proposal: Proposal, policyDecision: PolicyDecision, secret: string): Promise<BrokerExecutionResult> {
     if (!verifyExecutionAuthorization(authorization, secret)) throw new Error('EXECUTION_AUTHORIZATION_INVALID');
     if (authorization.proposalId !== proposal.id) throw new Error('EXECUTION_PROPOSAL_MISMATCH');
     if (authorization.policyDecisionId !== policyDecision.decisionId) throw new Error('EXECUTION_POLICY_DECISION_MISMATCH');
@@ -85,22 +77,12 @@ export class ExecutionBroker {
     if (existing?.status === 'UNKNOWN') throw new Error('EXECUTION_ID_REQUIRES_RECOVERY');
 
     let receipt = createExecutionReceipt({
-      executionId: authorization.executionId,
-      proposalId: proposal.id,
-      policyDecisionId: policyDecision.decisionId,
-      authorizationNonce: authorization.nonce,
-      capability: authorization.capability,
-      subject: authorization.subject,
+      executionId: authorization.executionId, proposalId: proposal.id, policyDecisionId: policyDecision.decisionId,
+      authorizationNonce: authorization.nonce, capability: authorization.capability, subject: authorization.subject,
     });
-
     receipt = await this.record(receipt, 'EXECUTION_AUTHORIZED', proposal, authorization.subject, authorization.policyDecisionId);
 
-    const claimed = await this.replayStore.claim({
-      nonce: authorization.nonce,
-      executionId: authorization.executionId,
-      proposalId: proposal.id,
-      claimedAt: new Date().toISOString(),
-    });
+    const claimed = await this.replayStore.claim({ nonce: authorization.nonce, executionId: authorization.executionId, proposalId: proposal.id, claimedAt: new Date().toISOString() });
     if (!claimed) throw new Error('EXECUTION_AUTHORIZATION_REPLAYED');
 
     receipt = transitionExecutionReceipt(receipt, 'CLAIMED');
@@ -123,16 +105,13 @@ export class ExecutionBroker {
 
   private async record(
     receipt: ExecutionReceipt,
-    type: 'EXECUTION_AUTHORIZED' | 'EXECUTION_CLAIMED' | 'EXECUTION_STARTED' | 'EXECUTION_COMPLETED' | 'EXECUTION_FAILED',
+    type: 'EXECUTION_AUTHORIZED' | 'EXECUTION_CLAIMED' | 'EXECUTION_STARTED' | 'EXECUTION_COMPLETED' | 'EXECUTION_FAILED' | 'RECOVERY_ACTION',
     proposal: Proposal,
     actorId: string,
     causation: string,
     payload: Record<string, unknown> = {},
   ): Promise<ExecutionReceipt> {
-    const event = createExecutionEvent({
-      type, receipt, actorId, proposalId: proposal.id, agentId: proposal.proposingAgentId,
-      causation, sequence: receipt.ledgerEventIds.length, payload,
-    });
+    const event = createExecutionEvent({ type, receipt, actorId, proposalId: proposal.id, agentId: proposal.proposingAgentId, causation, sequence: receipt.ledgerEventIds.length, payload });
     const committed = await this.ledger.append(event);
     return { ...receipt, ledgerEventIds: [...receipt.ledgerEventIds, committed.id] };
   }
