@@ -1,5 +1,5 @@
 import { verifyExecutionAuthorization, type ExecutionAuthorization } from './security';
-import type { Proposal } from '../src/types';
+import type { PolicyDecision, Proposal } from '../src/types';
 
 export interface CapabilityAdapter {
   capability: string;
@@ -31,6 +31,7 @@ export class ExecutionBroker {
   async execute(
     authorization: ExecutionAuthorization,
     proposal: Proposal,
+    policyDecision: PolicyDecision,
     secret: string
   ): Promise<BrokerExecutionResult> {
     if (!verifyExecutionAuthorization(authorization, secret)) {
@@ -38,6 +39,12 @@ export class ExecutionBroker {
     }
     if (authorization.proposalId !== proposal.id) {
       throw new Error('EXECUTION_PROPOSAL_MISMATCH');
+    }
+    if (authorization.policyDecisionId !== policyDecision.decisionId) {
+      throw new Error('EXECUTION_POLICY_DECISION_MISMATCH');
+    }
+    if (policyDecision.outcome !== 'ALLOW') {
+      throw new Error(`EXECUTION_POLICY_NOT_ALLOW:${policyDecision.outcome}`);
     }
     if (this.consumedNonces.has(authorization.nonce)) {
       throw new Error('EXECUTION_AUTHORIZATION_REPLAYED');
@@ -51,6 +58,9 @@ export class ExecutionBroker {
       throw new Error('EXECUTION_CAPABILITY_MISMATCH');
     }
 
+    // Consume before crossing the execution boundary. If an adapter fails,
+    // the authorization cannot be retried because the side-effect state is
+    // unknown and replaying could duplicate an external operation.
     this.consumedNonces.add(authorization.nonce);
     const output = await adapter.execute(proposal);
     return { executionId: authorization.executionId, proposalId: proposal.id, status: 'EXECUTED', output };
