@@ -87,6 +87,7 @@ describe('kernel integration path', () => {
     const authorization = issueExecutionAuthorization(systemPrincipal, {
       executionId,
       proposalId: proposal.id,
+      policyDecisionId: decision.decisionId,
       capability: proposal.requestedAction,
     }, secret);
 
@@ -96,7 +97,7 @@ describe('kernel integration path', () => {
       execute: async (approvedProposal) => ({ committed: true, proposalId: approvedProposal.id }),
     });
 
-    const result = await broker.execute(authorization, proposal, secret);
+    const result = await broker.execute(authorization, proposal, decision, secret);
     expect(result.status).toBe('EXECUTED');
     expect(result.proposalId).toBe(proposal.id);
 
@@ -127,15 +128,18 @@ describe('kernel integration path', () => {
     expect(() => issueExecutionAuthorization(operatorPrincipal, {
       executionId: 'exec-integration-denied-auth',
       proposalId: proposal.id,
+      policyDecisionId: 'decision-denied-auth',
       capability: proposal.requestedAction,
     }, secret)).toThrow('AUTHORIZATION_DENIED:execution:execute');
   });
 
   it('prevents an authorized execution from being replayed', async () => {
     const executionId = 'exec-integration-replay';
+    const decision = PolicyGateEngine.evaluate(proposal, evidence, [allowRule], systemPrincipal.roles[0]);
     const authorization = issueExecutionAuthorization(systemPrincipal, {
       executionId,
       proposalId: proposal.id,
+      policyDecisionId: decision.decisionId,
       capability: proposal.requestedAction,
     }, secret);
 
@@ -146,8 +150,8 @@ describe('kernel integration path', () => {
       execute: async () => { executionCount += 1; return { ok: true }; },
     });
 
-    await broker.execute(authorization, proposal, secret);
-    await expect(broker.execute(authorization, proposal, secret)).rejects.toThrow('EXECUTION_AUTHORIZATION_REPLAYED');
+    await broker.execute(authorization, proposal, decision, secret);
+    await expect(broker.execute(authorization, proposal, decision, secret)).rejects.toThrow('EXECUTION_AUTHORIZATION_REPLAYED');
     expect(executionCount).toBe(1);
   });
 });
