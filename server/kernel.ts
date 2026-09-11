@@ -75,7 +75,7 @@ export class PolicyGateEngine {
         appliedPolicies.push({
           policyId: rule.id,
           policyName: rule.name,
-          matched,
+          matched: matches,
           effect: ruleEffect,
         });
 
