@@ -2,13 +2,8 @@ import path from 'node:path';
 import { verifyExecutionAuthorization, type ExecutionAuthorization } from './security';
 import { DurableExecutionReplayStore } from './execution-replay-store';
 import { DurableEventLedger } from './durable-ledger';
-import {
-  createExecutionEvent,
-  createExecutionReceipt,
-  transitionExecutionReceipt,
-  type ExecutionReceiptStore,
-} from './execution-receipt';
-import type { PolicyDecision, Proposal } from '../src/types';
+import { createExecutionEvent, createExecutionReceipt, transitionExecutionReceipt } from './execution-receipt';
+import type { PolicyDecision, Proposal, ExecutionReceipt } from '../src/types';
 
 export interface CapabilityAdapter {
   capability: string;
@@ -20,21 +15,19 @@ export interface BrokerExecutionResult {
   proposalId: string;
   status: 'EXECUTED';
   output: unknown;
-  receipt: ReturnType<typeof createExecutionReceipt>;
+  receipt: ExecutionReceipt;
 }
 
 /** The only component allowed to cross from a policy-approved proposal into a capability adapter. */
 export class ExecutionBroker {
   private readonly adapters = new Map<string, CapabilityAdapter>();
   private readonly ledger: DurableEventLedger;
-  private readonly receiptStore: ExecutionReceiptStore;
 
   constructor(
     private readonly replayStore = new DurableExecutionReplayStore(),
     ledger?: DurableEventLedger,
   ) {
     this.ledger = ledger ?? new DurableEventLedger(path.resolve('.runtime', 'execution-ledger.jsonl'));
-    this.receiptStore = { get: (executionId) => this.getReceipt(executionId) };
   }
 
   register(adapter: CapabilityAdapter): void {
@@ -42,13 +35,15 @@ export class ExecutionBroker {
     this.adapters.set(adapter.capability, adapter);
   }
 
-  async getReceipt(executionId: string) {
+  async getReceipt(executionId: string): Promise<ExecutionReceipt | undefined> {
     const events = await this.ledger.read();
     const lifecycle = events.filter((event) => event.executionId === executionId && event.payload.receipt);
     if (lifecycle.length === 0) return undefined;
-    let receipt = lifecycle[0].payload.receipt as ReturnType<typeof createExecutionReceipt>;
-    receipt = { ...receipt, ledgerEventIds: lifecycle.map((event) => event.id) };
-    return receipt;
+    const latest = lifecycle.at(-1)!;
+    return {
+      ...(latest.payload.receipt as ExecutionReceipt),
+      ledgerEventIds: lifecycle.map((event) => event.id),
+    };
   }
 
   async execute(
@@ -94,35 +89,26 @@ export class ExecutionBroker {
     receipt = transitionExecutionReceipt(receipt, 'RUNNING');
     receipt = await this.record(receipt, 'EXECUTION_STARTED', proposal, authorization.subject, authorization.policyDecisionId);
 
-    const startedAt = Date.parse(receipt.startedAt ?? new Date().toISOString());
     try {
       const output = await adapter.execute(proposal);
       receipt = transitionExecutionReceipt(receipt, 'SUCCEEDED', { output });
       receipt = await this.record(receipt, 'EXECUTION_COMPLETED', proposal, authorization.subject, authorization.policyDecisionId);
-      return {
-        executionId: authorization.executionId,
-        proposalId: proposal.id,
-        status: 'EXECUTED',
-        output,
-        receipt,
-      };
+      return { executionId: authorization.executionId, proposalId: proposal.id, status: 'EXECUTED', output, receipt };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       receipt = transitionExecutionReceipt(receipt, 'FAILED', { error: message });
       await this.record(receipt, 'EXECUTION_FAILED', proposal, authorization.subject, authorization.policyDecisionId);
       throw new Error(`EXECUTION_FAILED:${message}`);
-    } finally {
-      void startedAt;
     }
   }
 
   private async record(
-    receipt: ReturnType<typeof createExecutionReceipt>,
+    receipt: ExecutionReceipt,
     type: 'EXECUTION_AUTHORIZED' | 'EXECUTION_CLAIMED' | 'EXECUTION_STARTED' | 'EXECUTION_COMPLETED' | 'EXECUTION_FAILED',
     proposal: Proposal,
     actorId: string,
     causation: string,
-  ) {
+  ): Promise<ExecutionReceipt> {
     const event = createExecutionEvent({
       type,
       receipt,
