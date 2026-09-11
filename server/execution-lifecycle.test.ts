@@ -71,7 +71,7 @@ describe('execution lifecycle integration', () => {
     try {
       const { decision, authorization } = authorize('lifecycle-recovery');
       let release!: () => void;
-      const blocked = new Promise<unknown>((resolve) => { release = resolve; });
+      const blocked = new Promise<void>((resolve) => { release = resolve; });
       broker.register({ capability: proposal.requestedAction, execute: async () => blocked });
       const executionPromise = broker.execute(authorization, proposal, decision, secret);
       for (let attempt = 0; attempt < 20 && (await ledger.read()).filter((e) => e.type === 'EXECUTION_STARTED').length === 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 5));
