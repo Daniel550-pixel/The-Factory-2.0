@@ -78,6 +78,7 @@ describe('execution lifecycle integration', () => {
       const recovered = await broker.recoverInterruptedExecutions();
       expect(recovered).toHaveLength(1);
       expect(recovered[0].status).toBe('UNKNOWN');
+      expect((await ledger.read()).at(-1)?.type).toBe('RECOVERY_ACTION');
       expect((await broker.getReceipt(authorization.executionId))?.status).toBe('UNKNOWN');
       release();
       await executionPromise;
