@@ -15,15 +15,26 @@ const principal: AuthenticatedPrincipal = {
 const input = {
   executionId: 'exec-test-1',
   proposalId: 'proposal-test-1',
+  policyDecisionId: 'decision-test-1',
   capability: 'test:execute',
 };
 
 const secret = 'test-secret';
 
 describe('execution authorization', () => {
-  it('issues and verifies a valid authorization', () => {
+  it('issues and verifies a valid authorization bound to a policy decision', () => {
     const token = issueExecutionAuthorization(principal, input, secret);
+    expect(token.policyDecisionId).toBe(input.policyDecisionId);
     expect(verifyExecutionAuthorization(token, secret)).toBe(true);
+  });
+
+  it('requires a policy decision when issuing authorization', () => {
+    expect(() => issueExecutionAuthorization(principal, {
+      executionId: input.executionId,
+      proposalId: input.proposalId,
+      policyDecisionId: '',
+      capability: input.capability,
+    }, secret)).toThrow('EXECUTION_POLICY_DECISION_REQUIRED');
   });
 
   it('rejects a tampered authorization', () => {
@@ -33,7 +44,7 @@ describe('execution authorization', () => {
   });
 
   it('rejects expired authorizations', () => {
-    const token = issueExecutionAuthorization(principal, input, secret,);
+    const token = issueExecutionAuthorization(principal, input, secret);
     expect(verifyExecutionAuthorization(token, secret, Date.parse(token.expiresAt))).toBe(false);
   });
 
